@@ -1,0 +1,84 @@
+# ── Hardware ──────────────────────────────────────────────────────────
+device: "cuda"
+seed: 42
+
+# ── Model pairs ──────────────────────────────────────────────────────
+model_pairs:
+  - name: "llama2-7b-tinyllama"
+    target:
+      model_id: "TheBloke/Llama-2-7B-Chat-GPTQ"
+      revision: "main"
+      quantisation: "gptq-4bit"
+      max_memory_mb: 6000          # fits comfortably on T4 16GB
+    draft:
+      model_id: "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
+      quantisation: null
+      max_memory_mb: 3000
+
+  - name: "qwen2.5-7b-0.5b"
+    target:
+      model_id: "Qwen/Qwen2.5-7B-Instruct-GPTQ-Int4"
+      revision: "main"
+      quantisation: "gptq-4bit"
+      max_memory_mb: 6000
+    draft:
+      model_id: "Qwen/Qwen2.5-0.5B-Instruct"
+      quantisation: null
+      max_memory_mb: 2000
+
+# ── Datasets ─────────────────────────────────────────────────────────
+datasets:
+  humaneval:
+    name: "openai_humaneval"
+    split: "test"
+    task_type: "code"
+    max_samples: 164
+    prompt_key: "prompt"
+    max_new_tokens: 256
+
+  math:
+    name: "hendrycks/competition_math"
+    split: "test"
+    task_type: "math"
+    max_samples: 200
+    prompt_key: "problem"
+    max_new_tokens: 512
+
+  sharegpt:
+    name: "anon8231489123/ShareGPT_Vicuna_unfiltered"
+    split: "train"
+    task_type: "chat"
+    max_samples: 200
+    prompt_key: "conversations"       # first human turn
+    max_new_tokens: 512
+
+  gsm8k:
+    name: "openai/gsm8k"
+    config: "main"
+    split: "test"
+    task_type: "reasoning"
+    max_samples: 200
+    prompt_key: "question"
+    max_new_tokens: 512
+
+# ── Tree parameters ──────────────────────────────────────────────────
+tree:
+  max_depth: 6                     # maximum speculation depth
+  top_k: 10                        # top-k candidates per node for branching
+  max_branch: 5                    # max children per node
+  max_nodes: 64                    # total node budget per step
+  temperature: 0.0                 # 0 = greedy; >0 = sampling-based
+
+# ── Measurement ──────────────────────────────────────────────────────
+measurement:
+  position_bin_size: 32            # bin output tokens in windows of 32
+  num_rejection_draws: 1           # for stochastic acceptance, avg over draws
+  log_raw: true                    # save per-token raw logs
+  log_dir: "results/raw"
+
+# ── Analysis ─────────────────────────────────────────────────────────
+analysis:
+  output_dir: "results/figures"
+  output_format: "pdf"             # pdf | png | svg
+  figsize: [8, 5]
+  dpi: 300
