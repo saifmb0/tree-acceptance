@@ -65,12 +65,12 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 # ── 1. CLI ────────────────────────────────────────────────────────────
 parser = argparse.ArgumentParser()
 parser.add_argument("--outdir",      default="results")
-parser.add_argument("--max-samples", type=int, default=10,
+parser.add_argument("--max-samples", type=int, default=50,
                     help="per-dataset sample cap")
-parser.add_argument("--max-depth",   type=int, default=3)
+parser.add_argument("--max-depth",   type=int, default=4)
 parser.add_argument("--top-k",       type=int, default=5)
-parser.add_argument("--max-branch",  type=int, default=3)
-parser.add_argument("--max-nodes",   type=int, default=16)
+parser.add_argument("--max-branch",  type=int, default=4)
+parser.add_argument("--max-nodes",   type=int, default=32)
 parser.add_argument("--temperature", type=float, default=0.0)
 parser.add_argument("--target-id",   default="TheBloke/Llama-2-7B-Chat-GPTQ")
 parser.add_argument("--draft-id",    default="TinyLlama/TinyLlama-1.1B-Chat-v1.0")
@@ -128,10 +128,10 @@ CFG = {
     "temperature": args.temperature,
     "position_bin_size": 32,
     "max_new_tokens": {
-        "code":      16,
-        "math":      16,
-        "chat":      16,
-        "reasoning": 16,
+        "code":      128,
+        "math":      128,
+        "chat":      128,
+        "reasoning": 128,
     },
     "max_samples": {
         "humaneval": args.max_samples,
@@ -234,17 +234,17 @@ def _load_model(model_id: str, is_target: bool):
         # The GPTQ repo stores its quantization_config in config.json;
         # transformers reads it automatically — do NOT pass a second one.
         _ensure_gptq_backend_ready()
-        logger.info(f"Loading {model_id} via transformers GPTQ (optimum backend)")
+        logger.info(f"Loading {model_id} via transformers GPTQ (optimum backend) on cuda:0")
         return AutoModelForCausalLM.from_pretrained(
             model_id,
-            device_map="auto",
+            device_map={"": 0},
             trust_remote_code=True,
         )
     else:
-        logger.info(f"Loading {model_id} fp16")
+        logger.info(f"Loading {model_id} fp16 on cuda:0")
         return AutoModelForCausalLM.from_pretrained(
             model_id,
-            device_map="auto",
+            device_map={"": 0},
             trust_remote_code=True,
             torch_dtype=torch.float16,
         )
