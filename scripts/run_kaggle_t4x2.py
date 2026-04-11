@@ -67,10 +67,10 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--outdir",      default="results")
 parser.add_argument("--max-samples", type=int, default=50,
                     help="per-dataset sample cap")
-parser.add_argument("--max-depth",   type=int, default=4)
-parser.add_argument("--top-k",       type=int, default=5)
-parser.add_argument("--max-branch",  type=int, default=4)
-parser.add_argument("--max-nodes",   type=int, default=32)
+parser.add_argument("--max-depth",   type=int, default=3)
+parser.add_argument("--top-k",       type=int, default=3)
+parser.add_argument("--max-branch",  type=int, default=2)
+parser.add_argument("--max-nodes",   type=int, default=8)
 parser.add_argument("--temperature", type=float, default=0.0)
 parser.add_argument("--target-id",   default="TheBloke/Llama-2-7B-Chat-GPTQ")
 parser.add_argument("--draft-id",    default="TinyLlama/TinyLlama-1.1B-Chat-v1.0")
@@ -128,10 +128,10 @@ CFG = {
     "temperature": args.temperature,
     "position_bin_size": 32,
     "max_new_tokens": {
-        "code":      128,
-        "math":      128,
-        "chat":      128,
-        "reasoning": 128,
+        "code":      64,
+        "math":      64,
+        "chat":      64,
+        "reasoning": 64,
     },
     "max_samples": {
         "humaneval": args.max_samples,
@@ -670,7 +670,7 @@ def measure_sample(
     """Run one sample through the draft-then-verify loop."""
     device = next(target_model.parameters()).device
     enc = target_tokenizer(
-        sample.prompt, return_tensors="pt", truncation=True, max_length=2048
+        sample.prompt, return_tensors="pt", truncation=True, max_length=512
     ).to(device)
     cur_ids  = enc["input_ids"]
     cur_mask = enc["attention_mask"]
