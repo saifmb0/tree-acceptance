@@ -128,17 +128,32 @@ def _ensure_gptq_backend_ready() -> None:
     if hasattr(oq, "QuantizeConfig"):
         return
 
-    providers = []
-    try:
-        from gptqmodel import QuantizeConfig as _QC
-        providers.append(("gptqmodel", _QC))
-    except Exception:
-        pass
-    try:
-        from auto_gptq import QuantizeConfig as _QC
-        providers.append(("auto_gptq", _QC))
-    except Exception:
-        pass
+    def _providers():
+        found = []
+        try:
+            from gptqmodel import QuantizeConfig as _QC
+            found.append(("gptqmodel", _QC))
+        except Exception:
+            pass
+        try:
+            from auto_gptq import QuantizeConfig as _QC
+            found.append(("auto_gptq", _QC))
+        except Exception:
+            pass
+        return found
+
+    providers = _providers()
+
+    if not providers:
+        logger.warning(
+            "No GPTQ QuantizeConfig provider found. Attempting to install `gptqmodel`..."
+        )
+        import subprocess
+        install_cmd = [sys.executable, "-m", "pip", "install", "-q", "gptqmodel"]
+        proc = subprocess.run(install_cmd, check=False)
+        if proc.returncode != 0:
+            logger.warning("Automatic install of `gptqmodel` failed.")
+        providers = _providers()
 
     if providers:
         src, qc_cls = providers[0]
@@ -147,8 +162,9 @@ def _ensure_gptq_backend_ready() -> None:
         return
 
     raise RuntimeError(
-        "GPTQ backend missing QuantizeConfig. Install one provider, e.g. `gptqmodel`, "
-        "or use an environment with compatible `auto-gptq`."
+        "GPTQ backend missing QuantizeConfig. Install one provider with:\n"
+        "  pip install gptqmodel\n"
+        "or use a compatible auto-gptq environment."
     )
 
 
