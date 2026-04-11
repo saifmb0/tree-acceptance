@@ -568,24 +568,31 @@ def build_draft_tree(
 
 
 @torch.no_grad()
-def verify_tree(target_m, input_ids, attn_mask, tree: DraftTree) -> DraftTree:
+def verify_and_score_tree(target_m, input_ids, attn_mask, tree: DraftTree) -> tuple[DraftTree, list[float]]:
     device = input_ids.device
     n = tree.size
     tree.target_probs    = [0.0] * n
     tree.target_logprobs = [0.0] * n
     tree.acceptance_probs = [0.0] * n
+    ents = [0.0] * n
 
     children_of = set(tree.parent)
     leaves = [i for i in range(n) if i not in children_of]
     scored: set[int] = set()
 
     if not leaves:
-        return tree
+        out = target_m(input_ids=input_ids, attention_mask=attn_mask, use_cache=False)
+        greedy_next_token = out.logits[0, -1, :].argmax(dim=-1, keepdim=True)
+        return tree, ents, greedy_next_token
 
     # Batch verified evaluating target model
     path_ids_list = []
     path_tokens_list = []
     max_len = 0
+
+    # Include an empty base path to compute the greedy next token!
+    path_ids_list.append([])
+    path_tokens_list.append([])
     
     for leaf in leaves:
         path_ids: list[int] = []
@@ -602,8 +609,7 @@ def verify_tree(target_m, input_ids, attn_mask, tree: DraftTree) -> DraftTree:
 
     # Prepare batched inputs (left-padded for causal LM)
     # Actually, right-padding with attention_mask is fine for calculating sequence probs
-    # wait, target_m is device_map="auto", ensure we pad correctly.
-    BS = len(leaves)
+    BS = len(path_ids_list)
     base_len = input_ids.shape[1]
     
     batched_fi = torch.zeros(BS, base_len + max_len, dtype=torch.long, device=device)
@@ -619,76 +625,32 @@ def verify_tree(target_m, input_ids, attn_mask, tree: DraftTree) -> DraftTree:
     out = target_m(input_ids=batched_fi, attention_mask=batched_fm, use_cache=False)
     batched_logits = out.logits
 
+    # Extract greedy prediction for the base sequence (index 0, position base_len - 1)
+    greedy_next_token = batched_logits[0, base_len - 1, :].argmax(dim=-1, keepdim=True)
+
     for b, path_ids in enumerate(path_ids_list):
+        if b == 0:  # Skip the empty base path we added for the greedy prediction
+            continue
         for idx, node_id in enumerate(path_ids):
             if node_id in scored:
                 continue
             lpos = base_len - 1 + idx
-            pv = F.softmax(batched_logits[b, lpos, :], dim=-1)
+            lv = batched_logits[b, lpos, :]
+            pv = F.softmax(lv, dim=-1)
+            lp = F.log_softmax(lv, dim=-1)
+            
             tok = tree.tokens[node_id]
             pt = pv[tok].item()
             pd_ = max(tree.draft_probs[node_id], 1e-10)
+            
             tree.target_probs[node_id]    = pt
             tree.target_logprobs[node_id] = pv[tok].log().item() if pt > 0 else -float("inf")
             tree.acceptance_probs[node_id] = min(1.0, pt / pd_)
-            scored.add(node_id)
-    return tree
-
-
-@torch.no_grad()
-def compute_target_entropy(target_m, input_ids, attn_mask, tree: DraftTree) -> list[float]:
-    device = input_ids.device
-    n = tree.size
-    ents = [0.0] * n
-    children_of = set(tree.parent)
-    leaves = [i for i in range(n) if i not in children_of]
-    done: set[int] = set()
-
-    if not leaves:
-        return ents
-
-    path_ids_list = []
-    path_tokens_list = []
-    max_len = 0
-    
-    for leaf in leaves:
-        path_ids: list[int] = []
-        nid = leaf
-        while nid >= 0:
-            path_ids.append(nid)
-            nid = tree.parent[nid]
-        path_ids.reverse()
-        path_ids_list.append(path_ids)
-        path_tokens = [tree.tokens[nid] for nid in path_ids]
-        path_tokens_list.append(path_tokens)
-        if len(path_tokens) > max_len:
-            max_len = len(path_tokens)
-
-    BS = len(leaves)
-    base_len = input_ids.shape[1]
-    
-    batched_fi = torch.zeros(BS, base_len + max_len, dtype=torch.long, device=device)
-    batched_fm = torch.zeros(BS, base_len + max_len, dtype=torch.long, device=device)
-    
-    for i in range(BS):
-        p_len = len(path_tokens_list[i])
-        batched_fi[i, :base_len] = input_ids[0]
-        batched_fm[i, :base_len] = attn_mask[0]
-        batched_fi[i, base_len:base_len + p_len] = torch.tensor(path_tokens_list[i], dtype=torch.long, device=device)
-        batched_fm[i, base_len:base_len + p_len] = 1
-
-    out = target_m(input_ids=batched_fi, attention_mask=batched_fm, use_cache=False)
-
-    for b, path_ids in enumerate(path_ids_list):
-        for idx, node_id in enumerate(path_ids):
-            if node_id in done:
-                continue
-            lv = out.logits[b, base_len - 1 + idx, :]
-            pv = F.softmax(lv, dim=-1)
-            lp = F.log_softmax(lv, dim=-1)
             ents[node_id] = -(pv * lp).sum().item()
-            done.add(node_id)
-    return ents
+            
+            scored.add(node_id)
+            
+    return tree, ents, greedy_next_token
 
 # ── 8. Measurement loop ───────────────────────────────────────────────
 # CSV columns — declared once so the header is written at row 0
@@ -730,8 +692,7 @@ def measure_sample(
         if tree.size == 0:
             break
 
-        tree = verify_tree(target_model, cur_ids, cur_mask, tree)
-        ents = compute_target_entropy(target_model, cur_ids, cur_mask, tree)
+        tree, ents, greedy_next_token = verify_and_score_tree(target_model, cur_ids, cur_mask, tree)
 
         pbs = CFG["position_bin_size"]
         for nid in range(tree.size):
@@ -752,9 +713,8 @@ def measure_sample(
             csv_writer.writerow(row)   # ← written immediately, one row at a time
             records.append(row)
 
-        # Greedy next token from target
-        out = target_model(input_ids=cur_ids, attention_mask=cur_mask, use_cache=False)
-        nt = out.logits[:, -1, :].argmax(dim=-1, keepdim=True)
+        # We already computed the greedy next token during batched verification
+        nt = greedy_next_token
         if nt.item() == target_tokenizer.eos_token_id:
             break
 
