@@ -508,21 +508,50 @@ def build_draft_tree(
 
     frontier = list(range(tree.size))
     while frontier and tree.size < max_nodes:
-        next_f: list[int] = []
-        for nid in frontier:
-            if tree.size >= max_nodes or tree.depth[nid] >= max_depth:
-                continue
+        # Filter valid frontier nodes
+        valid_frontier = [nid for nid in frontier if tree.size < max_nodes and tree.depth[nid] < max_depth]
+        if not valid_frontier:
+            break
+            
+        # Batch preparation for draft model
+        path_ids_list = []
+        path_tokens_list = []
+        max_len = 0
+
+        for nid in valid_frontier:
             path = _path_to_root(tree, nid)
-            p_t = torch.tensor([path], dtype=torch.long, device=device)
-            fi = torch.cat([input_ids, p_t], dim=1)
-            fm = torch.ones(1, fi.shape[1], dtype=torch.long, device=device)
-            o = draft_m(input_ids=fi, attention_mask=fm, use_cache=False)
-            lg = o.logits[:, -1, :]
+            path_ids_list.append(nid)
+            path_tokens_list.append(path)
+            if len(path) > max_len:
+                max_len = len(path)
+                
+        BS = len(valid_frontier)
+        base_len = input_ids.shape[1]
+        batched_fi = torch.zeros(BS, base_len + max_len, dtype=torch.long, device=device)
+        batched_fm = torch.zeros(BS, base_len + max_len, dtype=torch.long, device=device)
+        
+        for i in range(BS):
+            p_len = len(path_tokens_list[i])
+            batched_fi[i, :base_len] = input_ids[0]
+            batched_fm[i, :base_len] = attn_mask[0]
+            batched_fi[i, base_len:base_len + p_len] = torch.tensor(path_tokens_list[i], dtype=torch.long, device=device)
+            batched_fm[i, base_len:base_len + p_len] = 1
+
+        out = draft_m(input_ids=batched_fi, attention_mask=batched_fm, use_cache=False)
+        
+        next_f = []
+        for b, nid in enumerate(valid_frontier):
+            if tree.size >= max_nodes:
+                break
+                
+            p_len = len(path_tokens_list[b])
+            lg = out.logits[b, base_len - 1 + p_len, :]
+            
             p = F.softmax(
                 lg / max(temperature, 1e-8) if temperature > 0 else lg, dim=-1
             )
             tp, ti = p.topk(min(top_k, max_branch), dim=-1)
-            tp, ti = tp.squeeze(0), ti.squeeze(0)
+            
             for j in range(ti.shape[0]):
                 if tree.size >= max_nodes:
                     break
@@ -533,6 +562,7 @@ def build_draft_tree(
                 tree.draft_probs.append(tp[j].item())
                 tree.draft_logprobs.append(tp[j].log().item())
                 next_f.append(cid)
+                
         frontier = next_f
     return tree
 
@@ -549,6 +579,14 @@ def verify_tree(target_m, input_ids, attn_mask, tree: DraftTree) -> DraftTree:
     leaves = [i for i in range(n) if i not in children_of]
     scored: set[int] = set()
 
+    if not leaves:
+        return tree
+
+    # Batch verified evaluating target model
+    path_ids_list = []
+    path_tokens_list = []
+    max_len = 0
+    
     for leaf in leaves:
         path_ids: list[int] = []
         nid = leaf
@@ -556,20 +594,37 @@ def verify_tree(target_m, input_ids, attn_mask, tree: DraftTree) -> DraftTree:
             path_ids.append(nid)
             nid = tree.parent[nid]
         path_ids.reverse()
-
+        path_ids_list.append(path_ids)
         path_tokens = [tree.tokens[nid] for nid in path_ids]
-        p_t = torch.tensor([path_tokens], dtype=torch.long, device=device)
-        fi = torch.cat([input_ids, p_t], dim=1)
-        fm = torch.ones(1, fi.shape[1], dtype=torch.long, device=device)
-        out = target_m(input_ids=fi, attention_mask=fm, use_cache=False)
-        logits = out.logits
-        plen = input_ids.shape[1]
+        path_tokens_list.append(path_tokens)
+        if len(path_tokens) > max_len:
+            max_len = len(path_tokens)
 
+    # Prepare batched inputs (left-padded for causal LM)
+    # Actually, right-padding with attention_mask is fine for calculating sequence probs
+    # wait, target_m is device_map="auto", ensure we pad correctly.
+    BS = len(leaves)
+    base_len = input_ids.shape[1]
+    
+    batched_fi = torch.zeros(BS, base_len + max_len, dtype=torch.long, device=device)
+    batched_fm = torch.zeros(BS, base_len + max_len, dtype=torch.long, device=device)
+    
+    for i in range(BS):
+        p_len = len(path_tokens_list[i])
+        batched_fi[i, :base_len] = input_ids[0]
+        batched_fm[i, :base_len] = attn_mask[0]
+        batched_fi[i, base_len:base_len + p_len] = torch.tensor(path_tokens_list[i], dtype=torch.long, device=device)
+        batched_fm[i, base_len:base_len + p_len] = 1
+
+    out = target_m(input_ids=batched_fi, attention_mask=batched_fm, use_cache=False)
+    batched_logits = out.logits
+
+    for b, path_ids in enumerate(path_ids_list):
         for idx, node_id in enumerate(path_ids):
             if node_id in scored:
                 continue
-            lpos = plen - 1 + idx
-            pv = F.softmax(logits[0, lpos, :], dim=-1)
+            lpos = base_len - 1 + idx
+            pv = F.softmax(batched_logits[b, lpos, :], dim=-1)
             tok = tree.tokens[node_id]
             pt = pv[tok].item()
             pd_ = max(tree.draft_probs[node_id], 1e-10)
@@ -589,6 +644,13 @@ def compute_target_entropy(target_m, input_ids, attn_mask, tree: DraftTree) -> l
     leaves = [i for i in range(n) if i not in children_of]
     done: set[int] = set()
 
+    if not leaves:
+        return ents
+
+    path_ids_list = []
+    path_tokens_list = []
+    max_len = 0
+    
     for leaf in leaves:
         path_ids: list[int] = []
         nid = leaf
@@ -596,17 +658,32 @@ def compute_target_entropy(target_m, input_ids, attn_mask, tree: DraftTree) -> l
             path_ids.append(nid)
             nid = tree.parent[nid]
         path_ids.reverse()
-        pt = [tree.tokens[n_] for n_ in path_ids]
-        fi = torch.cat(
-            [input_ids, torch.tensor([pt], dtype=torch.long, device=device)], dim=1
-        )
-        fm = torch.ones(1, fi.shape[1], dtype=torch.long, device=device)
-        out = target_m(input_ids=fi, attention_mask=fm, use_cache=False)
-        plen = input_ids.shape[1]
+        path_ids_list.append(path_ids)
+        path_tokens = [tree.tokens[nid] for nid in path_ids]
+        path_tokens_list.append(path_tokens)
+        if len(path_tokens) > max_len:
+            max_len = len(path_tokens)
+
+    BS = len(leaves)
+    base_len = input_ids.shape[1]
+    
+    batched_fi = torch.zeros(BS, base_len + max_len, dtype=torch.long, device=device)
+    batched_fm = torch.zeros(BS, base_len + max_len, dtype=torch.long, device=device)
+    
+    for i in range(BS):
+        p_len = len(path_tokens_list[i])
+        batched_fi[i, :base_len] = input_ids[0]
+        batched_fm[i, :base_len] = attn_mask[0]
+        batched_fi[i, base_len:base_len + p_len] = torch.tensor(path_tokens_list[i], dtype=torch.long, device=device)
+        batched_fm[i, base_len:base_len + p_len] = 1
+
+    out = target_m(input_ids=batched_fi, attention_mask=batched_fm, use_cache=False)
+
+    for b, path_ids in enumerate(path_ids_list):
         for idx, node_id in enumerate(path_ids):
             if node_id in done:
                 continue
-            lv = out.logits[0, plen - 1 + idx, :]
+            lv = out.logits[b, base_len - 1 + idx, :]
             pv = F.softmax(lv, dim=-1)
             lp = F.log_softmax(lv, dim=-1)
             ents[node_id] = -(pv * lp).sum().item()
