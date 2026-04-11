@@ -106,41 +106,21 @@ if torch.cuda.is_available():
 sns.set_theme(style="whitegrid", context="paper", font_scale=1.2)
 
 # ── 5. Load models ────────────────────────────────────────────────────
-# Detect whether auto-gptq is available; fall back to bitsandbytes 4-bit NF4.
-try:
-    from auto_gptq import AutoGPTQForCausalLM  # noqa: F401
-    _GPTQ_AVAILABLE = True
-except ImportError:
-    _GPTQ_AVAILABLE = False
-    logger.warning("auto-gptq not available — falling back to bitsandbytes 4-bit NF4.")
-
-
+# ── Model loading ─────────────────────────────────────────────────────
+# auto-gptq 0.7.1 is incompatible with torch 2.11+ (removed C++ API).
+# transformers >= 4.35 + optimum load GPTQ models natively: just call
+# from_pretrained with no extra quantization_config — it reads the model's
+# own config.json.  For plain fp16 drafts we pass torch_dtype explicitly.
 def _load_model(model_id: str, is_target: bool):
-    """Load a model, preferring GPTQ for the target, fp16 for the draft.
-    Falls back to bitsandbytes NF4 if auto-gptq is missing."""
-    if is_target and _GPTQ_AVAILABLE:
-        logger.info(f"Loading {model_id} via auto-gptq")
-        return AutoGPTQForCausalLM.from_quantized(
-            model_id,
-            device_map="auto",
-            trust_remote_code=True,
-            use_safetensors=True,
-            inject_fused_attention=False,
-        )
-    elif is_target and not _GPTQ_AVAILABLE:
-        from transformers import BitsAndBytesConfig
-        bnb_cfg = BitsAndBytesConfig(
-            load_in_4bit=True,
-            bnb_4bit_quant_type="nf4",
-            bnb_4bit_use_double_quant=True,
-            bnb_4bit_compute_dtype=torch.float16,
-        )
-        logger.info(f"Loading {model_id} via bitsandbytes NF4")
+    """Load target (GPTQ-native via transformers+optimum) or draft (fp16)."""
+    if is_target:
+        # The GPTQ repo stores its quantization_config in config.json;
+        # transformers reads it automatically — do NOT pass a second one.
+        logger.info(f"Loading {model_id} via transformers GPTQ (optimum backend)")
         return AutoModelForCausalLM.from_pretrained(
             model_id,
             device_map="auto",
             trust_remote_code=True,
-            quantization_config=bnb_cfg,
         )
     else:
         logger.info(f"Loading {model_id} fp16")
