@@ -1,0 +1,22 @@
+{
+  "target_id": "TheBloke/Llama-2-7B-Chat-GPTQ",
+  "draft_id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+  "max_depth": 3,
+  "top_k": 5,
+  "max_branch": 3,
+  "max_nodes": 16,
+  "temperature": 0.0,
+  "position_bin_size": 32,
+  "max_new_tokens": {
+    "code": 16,
+    "math": 16,
+    "chat": 16,
+    "reasoning": 16
+  },
+  "max_samples": {
+    "humaneval": 10,
+    "math": 10,
+    "sharegpt": 10,
+    "gsm8k": 10
+  }
+}

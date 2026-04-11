@@ -1,0 +1,21 @@
+2026-04-11 05:19:30.287 | INFO     | __main__:<module>:144 - Config saved → results/config_20260411_051930.json
+2026-04-11 05:19:30.521 | INFO     | __main__:<module>:153 - Device: cuda
+2026-04-11 05:19:30.552 | INFO     | __main__:<module>:160 -   GPU 0: Tesla T4, 15.6 GB
+2026-04-11 05:19:30.552 | INFO     | __main__:<module>:160 -   GPU 1: Tesla T4, 15.6 GB
+2026-04-11 05:19:30.553 | INFO     | __main__:<module>:251 - Loading target: TheBloke/Llama-2-7B-Chat-GPTQ
+2026-04-11 05:19:37.135 | INFO     | __main__:_load_model:235 - Loading TheBloke/Llama-2-7B-Chat-GPTQ via transformers GPTQ (optimum backend)
+2026-04-11 05:19:43.273 | INFO     | __main__:<module>:261 - Loading draft: TinyLlama/TinyLlama-1.1B-Chat-v1.0
+2026-04-11 05:19:43.273 | INFO     | __main__:_load_model:242 - Loading TinyLlama/TinyLlama-1.1B-Chat-v1.0 fp16
+2026-04-11 05:19:46.559 | INFO     | __main__:<module>:267 -   GPU 0: 2.75 GB allocated
+2026-04-11 05:19:46.560 | INFO     | __main__:<module>:267 -   GPU 1: 3.35 GB allocated
+2026-04-11 05:19:52.140 | INFO     | __main__:_safe_load:401 - Loaded openai_humaneval: 50 samples
+2026-04-11 05:19:52.463 | WARNING  | __main__:_load_dataset_with_hub_fallback:288 - Dataset load failed via mirror (Couldn't find any data file at /kaggle/working/tree-acceptance/hendrycks/competition_math. Couldn't find 'hendrycks/competition_math' on the Hugging Face Hub either: LocalEntryNotFoundError: An error happened while trying to locate the file on the Hub and we cannot find the requested files in the local cache. Please check your connection and try again or make sure your Internet connection is on.); retrying via huggingface.co
+2026-04-11 05:19:52.786 | WARNING  | __main__:_safe_load:404 - Skipping dataset hendrycks/competition_math due to load error: Couldn't find any data file at /kaggle/working/tree-acceptance/hendrycks/competition_math. Couldn't find 'hendrycks/competition_math' on the Hugging Face Hub either: LocalEntryNotFoundError: An error happened while trying to locate the file on the Hub and we cannot find the requested files in the local cache. Please check your connection and try again or make sure your Internet connection is on.
+2026-04-11 05:19:55.976 | INFO     | __main__:_safe_load:401 - Loaded openai/gsm8k: 50 samples
+2026-04-11 05:20:19.487 | INFO     | __main__:load_sharegpt:388 - Loaded chat dataset from HuggingFaceH4/ultrachat_200k (50 samples)
+2026-04-11 05:20:19.488 | INFO     | __main__:_safe_load:401 - Loaded ShareGPT: 50 samples
+2026-04-11 05:20:19.488 | INFO     | __main__:<module>:414 - Total samples: 150
+2026-04-11 05:20:19.488 | INFO     | __main__:<module>:416 -   code: 50
+2026-04-11 05:20:19.489 | INFO     | __main__:<module>:416 -   math: 0
+2026-04-11 05:20:19.489 | INFO     | __main__:<module>:416 -   reasoning: 50
+2026-04-11 05:20:19.489 | INFO     | __main__:<module>:416 -   chat: 50

@@ -1,0 +1,22 @@
+2026-04-11 05:50:31.415 | INFO     | __main__:<module>:146 - Config saved → results/config_20260411_055031.json
+2026-04-11 05:50:31.657 | INFO     | __main__:<module>:155 - Device: cuda
+2026-04-11 05:50:31.688 | INFO     | __main__:<module>:162 -   GPU 0: Tesla T4, 15.6 GB
+2026-04-11 05:50:31.688 | INFO     | __main__:<module>:162 -   GPU 1: Tesla T4, 15.6 GB
+2026-04-11 05:50:31.689 | INFO     | __main__:<module>:253 - Loading target: TheBloke/Llama-2-7B-Chat-GPTQ
+2026-04-11 05:50:38.229 | INFO     | __main__:_load_model:237 - Loading TheBloke/Llama-2-7B-Chat-GPTQ via transformers GPTQ (optimum backend)
+2026-04-11 05:50:44.305 | INFO     | __main__:<module>:263 - Loading draft: TinyLlama/TinyLlama-1.1B-Chat-v1.0
+2026-04-11 05:50:44.305 | INFO     | __main__:_load_model:244 - Loading TinyLlama/TinyLlama-1.1B-Chat-v1.0 fp16
+2026-04-11 05:50:47.719 | INFO     | __main__:<module>:269 -   GPU 0: 2.75 GB allocated
+2026-04-11 05:50:47.720 | INFO     | __main__:<module>:269 -   GPU 1: 3.35 GB allocated
+2026-04-11 05:50:53.345 | INFO     | __main__:_safe_load:421 - Loaded openai_humaneval: 10 samples
+2026-04-11 05:50:53.681 | WARNING  | __main__:_load_dataset_with_hub_fallback:290 - Dataset load failed via mirror (Couldn't find any data file at /kaggle/working/tree-acceptance/hendrycks/competition_math. Couldn't find 'hendrycks/competition_math' on the Hugging Face Hub either: LocalEntryNotFoundError: An error happened while trying to locate the file on the Hub and we cannot find the requested files in the local cache. Please check your connection and try again or make sure your Internet connection is on.); retrying via huggingface.co
+2026-04-11 05:50:57.170 | INFO     | __main__:load_math:334 - Loaded math dataset from EleutherAI/hendrycks_math (10 samples)
+2026-04-11 05:50:57.170 | INFO     | __main__:_safe_load:421 - Loaded hendrycks/competition_math: 10 samples
+2026-04-11 05:51:00.155 | INFO     | __main__:_safe_load:421 - Loaded openai/gsm8k: 10 samples
+2026-04-11 05:51:03.179 | INFO     | __main__:load_sharegpt:408 - Loaded chat dataset from HuggingFaceH4/ultrachat_200k (10 samples)
+2026-04-11 05:51:03.180 | INFO     | __main__:_safe_load:421 - Loaded ShareGPT: 10 samples
+2026-04-11 05:51:03.180 | INFO     | __main__:<module>:434 - Total samples: 40
+2026-04-11 05:51:03.180 | INFO     | __main__:<module>:436 -   code: 10
+2026-04-11 05:51:03.180 | INFO     | __main__:<module>:436 -   math: 10
+2026-04-11 05:51:03.180 | INFO     | __main__:<module>:436 -   reasoning: 10
+2026-04-11 05:51:03.180 | INFO     | __main__:<module>:436 -   chat: 10

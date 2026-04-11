@@ -1,0 +1,47 @@
+2026-04-11 06:15:13.997 | INFO     | __main__:<module>:146 - Config saved → results/config_20260411_061513.json
+2026-04-11 06:15:14.235 | INFO     | __main__:<module>:155 - Device: cuda
+2026-04-11 06:15:14.266 | INFO     | __main__:<module>:162 -   GPU 0: Tesla T4, 15.6 GB
+2026-04-11 06:15:14.266 | INFO     | __main__:<module>:162 -   GPU 1: Tesla T4, 15.6 GB
+2026-04-11 06:15:14.267 | INFO     | __main__:<module>:253 - Loading target: TheBloke/Llama-2-7B-Chat-GPTQ
+2026-04-11 06:15:20.723 | INFO     | __main__:_load_model:237 - Loading TheBloke/Llama-2-7B-Chat-GPTQ via transformers GPTQ (optimum backend) on cuda:0
+2026-04-11 06:15:26.651 | INFO     | __main__:<module>:263 - Loading draft: TinyLlama/TinyLlama-1.1B-Chat-v1.0
+2026-04-11 06:15:26.652 | INFO     | __main__:_load_model:244 - Loading TinyLlama/TinyLlama-1.1B-Chat-v1.0 fp16 on cuda:0
+2026-04-11 06:15:29.950 | INFO     | __main__:<module>:269 -   GPU 0: 6.10 GB allocated
+2026-04-11 06:15:29.950 | INFO     | __main__:<module>:269 -   GPU 1: 0.00 GB allocated
+2026-04-11 06:15:36.135 | INFO     | __main__:_safe_load:421 - Loaded openai_humaneval: 50 samples
+2026-04-11 06:15:36.496 | WARNING  | __main__:_load_dataset_with_hub_fallback:290 - Dataset load failed via mirror (Couldn't find any data file at /kaggle/working/tree-acceptance/hendrycks/competition_math. Couldn't find 'hendrycks/competition_math' on the Hugging Face Hub either: LocalEntryNotFoundError: An error happened while trying to locate the file on the Hub and we cannot find the requested files in the local cache. Please check your connection and try again or make sure your Internet connection is on.); retrying via huggingface.co
+2026-04-11 06:15:40.526 | INFO     | __main__:load_math:334 - Loaded math dataset from EleutherAI/hendrycks_math (50 samples)
+2026-04-11 06:15:40.526 | INFO     | __main__:_safe_load:421 - Loaded hendrycks/competition_math: 50 samples
+2026-04-11 06:15:43.858 | INFO     | __main__:_safe_load:421 - Loaded openai/gsm8k: 50 samples
+2026-04-11 06:15:54.292 | INFO     | __main__:load_sharegpt:408 - Loaded chat dataset from HuggingFaceH4/ultrachat_200k (50 samples)
+2026-04-11 06:15:54.292 | INFO     | __main__:_safe_load:421 - Loaded ShareGPT: 50 samples
+2026-04-11 06:15:54.293 | INFO     | __main__:<module>:434 - Total samples: 200
+2026-04-11 06:15:54.293 | INFO     | __main__:<module>:436 -   code: 50
+2026-04-11 06:15:54.293 | INFO     | __main__:<module>:436 -   math: 50
+2026-04-11 06:15:54.293 | INFO     | __main__:<module>:436 -   reasoning: 50
+2026-04-11 06:15:54.293 | INFO     | __main__:<module>:436 -   chat: 50
+2026-04-11 06:37:04.589 | INFO     | __main__:<module>:757 - [20/200] 10240 records, 1270s
+2026-04-11 06:58:55.262 | INFO     | __main__:<module>:757 - [40/200] 20480 records, 2581s
+2026-04-11 07:17:31.474 | INFO     | __main__:<module>:757 - [60/200] 30512 records, 3697s
+2026-04-11 07:34:21.652 | INFO     | __main__:<module>:757 - [80/200] 40752 records, 4707s
+2026-04-11 07:49:31.912 | INFO     | __main__:<module>:757 - [100/200] 50992 records, 5618s
+2026-04-11 08:05:37.529 | INFO     | __main__:<module>:757 - [120/200] 60616 records, 6583s
+2026-04-11 08:21:16.372 | INFO     | __main__:<module>:757 - [140/200] 70584 records, 7522s
+2026-04-11 08:40:38.302 | INFO     | __main__:<module>:757 - [160/200] 79792 records, 8684s
+2026-04-11 09:00:15.599 | INFO     | __main__:<module>:757 - [180/200] 89528 records, 9861s
+2026-04-11 09:19:40.996 | INFO     | __main__:<module>:757 - [200/200] 99768 records, 11027s
+2026-04-11 09:19:40.997 | INFO     | __main__:<module>:762 - Done: 99768 records from 200 samples in 11027s
+2026-04-11 09:19:40.997 | INFO     | __main__:<module>:766 - CSV  → results/raw_records_20260411_061513.csv
+2026-04-11 09:19:40.997 | INFO     | __main__:<module>:767 - JSONL→ results/raw_records_20260411_061513.jsonl
+2026-04-11 09:19:41.290 | INFO     | __main__:<module>:775 - DataFrame: (99768, 12)
+2026-04-11 09:19:41.309 | INFO     | __main__:<module>:776 - Tasks: {'code': 25600, 'math': 25392, 'chat': 24592, 'reasoning': 24184}
+2026-04-11 09:19:41.309 | INFO     | __main__:<module>:777 - Depth range: 1 – 3
+2026-04-11 09:19:41.310 | INFO     | __main__:<module>:778 - Mean α: 0.5382
+2026-04-11 09:19:41.424 | INFO     | __main__:<module>:848 - Aggregate CSVs saved.
+2026-04-11 09:19:42.689 | INFO     | __main__:_savefig:863 - Figure saved → results/fig1_depth_acceptance_20260411_061513.pdf
+2026-04-11 09:19:43.236 | INFO     | __main__:_savefig:863 - Figure saved → results/fig2_position_heatmaps_20260411_061513.pdf
+2026-04-11 09:19:43.389 | INFO     | __main__:_savefig:863 - Figure saved → results/fig3_expected_length_20260411_061513.pdf
+2026-04-11 09:19:43.628 | INFO     | __main__:_savefig:863 - Figure saved → results/fig4_cumulative_acceptance_20260411_061513.pdf
+2026-04-11 09:19:43.819 | INFO     | __main__:_savefig:863 - Figure saved → results/fig5_draft_calibration_20260411_061513.pdf
+2026-04-11 09:19:44.084 | INFO     | __main__:_savefig:863 - Figure saved → results/fig6_entropy_vs_acceptance_20260411_061513.pdf
+2026-04-11 09:19:44.128 | INFO     | __main__:<module>:1017 - Run complete.

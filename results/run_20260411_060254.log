@@ -1,0 +1,63 @@
+2026-04-11 06:02:54.438 | INFO     | __main__:<module>:146 - Config saved → results/config_20260411_060254.json
+2026-04-11 06:02:54.676 | INFO     | __main__:<module>:155 - Device: cuda
+2026-04-11 06:02:54.707 | INFO     | __main__:<module>:162 -   GPU 0: Tesla T4, 15.6 GB
+2026-04-11 06:02:54.707 | INFO     | __main__:<module>:162 -   GPU 1: Tesla T4, 15.6 GB
+2026-04-11 06:02:54.708 | INFO     | __main__:<module>:253 - Loading target: TheBloke/Llama-2-7B-Chat-GPTQ
+2026-04-11 06:03:01.176 | INFO     | __main__:_load_model:237 - Loading TheBloke/Llama-2-7B-Chat-GPTQ via transformers GPTQ (optimum backend) on cuda:0
+2026-04-11 06:03:06.986 | INFO     | __main__:<module>:263 - Loading draft: TinyLlama/TinyLlama-1.1B-Chat-v1.0
+2026-04-11 06:03:06.986 | INFO     | __main__:_load_model:244 - Loading TinyLlama/TinyLlama-1.1B-Chat-v1.0 fp16 on cuda:0
+2026-04-11 06:03:10.259 | INFO     | __main__:<module>:269 -   GPU 0: 6.10 GB allocated
+2026-04-11 06:03:10.259 | INFO     | __main__:<module>:269 -   GPU 1: 0.00 GB allocated
+2026-04-11 06:03:16.045 | INFO     | __main__:_safe_load:421 - Loaded openai_humaneval: 50 samples
+2026-04-11 06:03:16.374 | WARNING  | __main__:_load_dataset_with_hub_fallback:290 - Dataset load failed via mirror (Couldn't find any data file at /kaggle/working/tree-acceptance/hendrycks/competition_math. Couldn't find 'hendrycks/competition_math' on the Hugging Face Hub either: LocalEntryNotFoundError: An error happened while trying to locate the file on the Hub and we cannot find the requested files in the local cache. Please check your connection and try again or make sure your Internet connection is on.); retrying via huggingface.co
+2026-04-11 06:03:19.862 | INFO     | __main__:load_math:334 - Loaded math dataset from EleutherAI/hendrycks_math (50 samples)
+2026-04-11 06:03:19.862 | INFO     | __main__:_safe_load:421 - Loaded hendrycks/competition_math: 50 samples
+2026-04-11 06:03:23.143 | INFO     | __main__:_safe_load:421 - Loaded openai/gsm8k: 50 samples
+2026-04-11 06:03:26.268 | INFO     | __main__:load_sharegpt:408 - Loaded chat dataset from HuggingFaceH4/ultrachat_200k (50 samples)
+2026-04-11 06:03:26.268 | INFO     | __main__:_safe_load:421 - Loaded ShareGPT: 50 samples
+2026-04-11 06:03:26.268 | INFO     | __main__:<module>:434 - Total samples: 200
+2026-04-11 06:03:26.268 | INFO     | __main__:<module>:436 -   code: 50
+2026-04-11 06:03:26.268 | INFO     | __main__:<module>:436 -   math: 50
+2026-04-11 06:03:26.268 | INFO     | __main__:<module>:436 -   reasoning: 50
+2026-04-11 06:03:26.268 | INFO     | __main__:<module>:436 -   chat: 50
+2026-04-11 06:03:31.236 | WARNING  | __main__:<module>:755 - Error on he_HumanEval/0: Tensors must have same number of dimensions: got 2 and 1
+2026-04-11 06:03:34.761 | WARNING  | __main__:<module>:755 - Error on he_HumanEval/1: Tensors must have same number of dimensions: got 2 and 1
+2026-04-11 06:03:37.122 | WARNING  | __main__:<module>:755 - Error on he_HumanEval/2: Tensors must have same number of dimensions: got 2 and 1
+2026-04-11 06:03:40.712 | WARNING  | __main__:<module>:755 - Error on he_HumanEval/3: Tensors must have same number of dimensions: got 2 and 1
+2026-04-11 06:03:44.376 | WARNING  | __main__:<module>:755 - Error on he_HumanEval/4: Tensors must have same number of dimensions: got 2 and 1
+2026-04-11 06:03:47.060 | WARNING  | __main__:<module>:755 - Error on he_HumanEval/5: Tensors must have same number of dimensions: got 2 and 1
+2026-04-11 06:03:50.829 | WARNING  | __main__:<module>:755 - Error on he_HumanEval/6: Tensors must have same number of dimensions: got 2 and 1
+2026-04-11 06:03:53.487 | WARNING  | __main__:<module>:755 - Error on he_HumanEval/7: Tensors must have same number of dimensions: got 2 and 1
+2026-04-11 06:03:57.259 | WARNING  | __main__:<module>:755 - Error on he_HumanEval/8: Tensors must have same number of dimensions: got 2 and 1
+2026-04-11 06:04:00.065 | WARNING  | __main__:<module>:755 - Error on he_HumanEval/9: Tensors must have same number of dimensions: got 2 and 1
+2026-04-11 06:04:05.144 | WARNING  | __main__:<module>:755 - Error on he_HumanEval/10: Tensors must have same number of dimensions: got 2 and 1
+2026-04-11 06:04:07.470 | WARNING  | __main__:<module>:755 - Error on he_HumanEval/11: Tensors must have same number of dimensions: got 2 and 1
+2026-04-11 06:04:10.275 | WARNING  | __main__:<module>:755 - Error on he_HumanEval/12: Tensors must have same number of dimensions: got 2 and 1
+2026-04-11 06:04:12.417 | WARNING  | __main__:<module>:755 - Error on he_HumanEval/13: Tensors must have same number of dimensions: got 2 and 1
+2026-04-11 06:04:14.163 | WARNING  | __main__:<module>:755 - Error on he_HumanEval/14: Tensors must have same number of dimensions: got 2 and 1
+2026-04-11 06:04:16.254 | WARNING  | __main__:<module>:755 - Error on he_HumanEval/15: Tensors must have same number of dimensions: got 2 and 1
+2026-04-11 06:04:18.379 | WARNING  | __main__:<module>:755 - Error on he_HumanEval/16: Tensors must have same number of dimensions: got 2 and 1
+2026-04-11 06:04:23.352 | WARNING  | __main__:<module>:755 - Error on he_HumanEval/17: Tensors must have same number of dimensions: got 2 and 1
+2026-04-11 06:04:25.784 | WARNING  | __main__:<module>:755 - Error on he_HumanEval/18: Tensors must have same number of dimensions: got 2 and 1
+2026-04-11 06:04:28.655 | WARNING  | __main__:<module>:755 - Error on he_HumanEval/19: Tensors must have same number of dimensions: got 2 and 1
+2026-04-11 06:04:33.329 | WARNING  | __main__:<module>:755 - Error on he_HumanEval/20: Tensors must have same number of dimensions: got 2 and 1
+2026-04-11 06:04:36.902 | WARNING  | __main__:<module>:755 - Error on he_HumanEval/21: Tensors must have same number of dimensions: got 2 and 1
+2026-04-11 06:04:39.339 | WARNING  | __main__:<module>:755 - Error on he_HumanEval/22: Tensors must have same number of dimensions: got 2 and 1
+2026-04-11 06:04:40.614 | WARNING  | __main__:<module>:755 - Error on he_HumanEval/23: Tensors must have same number of dimensions: got 2 and 1
+2026-04-11 06:04:42.126 | WARNING  | __main__:<module>:755 - Error on he_HumanEval/24: Tensors must have same number of dimensions: got 2 and 1
+2026-04-11 06:04:45.727 | WARNING  | __main__:<module>:755 - Error on he_HumanEval/25: Tensors must have same number of dimensions: got 2 and 1
+2026-04-11 06:04:47.958 | WARNING  | __main__:<module>:755 - Error on he_HumanEval/26: Tensors must have same number of dimensions: got 2 and 1
+2026-04-11 06:04:49.558 | WARNING  | __main__:<module>:755 - Error on he_HumanEval/27: Tensors must have same number of dimensions: got 2 and 1
+2026-04-11 06:04:51.262 | WARNING  | __main__:<module>:755 - Error on he_HumanEval/28: Tensors must have same number of dimensions: got 2 and 1
+2026-04-11 06:04:53.740 | WARNING  | __main__:<module>:755 - Error on he_HumanEval/29: Tensors must have same number of dimensions: got 2 and 1
+2026-04-11 06:04:57.354 | WARNING  | __main__:<module>:755 - Error on he_HumanEval/30: Tensors must have same number of dimensions: got 2 and 1
+2026-04-11 06:05:00.718 | WARNING  | __main__:<module>:755 - Error on he_HumanEval/31: Tensors must have same number of dimensions: got 2 and 1
+2026-04-11 06:05:08.786 | WARNING  | __main__:<module>:755 - Error on he_HumanEval/32: Tensors must have same number of dimensions: got 2 and 1
+2026-04-11 06:05:13.102 | WARNING  | __main__:<module>:755 - Error on he_HumanEval/33: Tensors must have same number of dimensions: got 2 and 1
+2026-04-11 06:05:15.116 | WARNING  | __main__:<module>:755 - Error on he_HumanEval/34: Tensors must have same number of dimensions: got 2 and 1
+2026-04-11 06:05:17.385 | WARNING  | __main__:<module>:755 - Error on he_HumanEval/35: Tensors must have same number of dimensions: got 2 and 1
+2026-04-11 06:05:19.712 | WARNING  | __main__:<module>:755 - Error on he_HumanEval/36: Tensors must have same number of dimensions: got 2 and 1
+2026-04-11 06:05:23.423 | WARNING  | __main__:<module>:755 - Error on he_HumanEval/37: Tensors must have same number of dimensions: got 2 and 1
+2026-04-11 06:05:28.262 | WARNING  | __main__:<module>:755 - Error on he_HumanEval/38: Tensors must have same number of dimensions: got 2 and 1
+2026-04-11 06:05:31.029 | WARNING  | __main__:<module>:755 - Error on he_HumanEval/39: Tensors must have same number of dimensions: got 2 and 1
+2026-04-11 06:05:36.406 | WARNING  | __main__:<module>:755 - Error on he_HumanEval/40: Tensors must have same number of dimensions: got 2 and 1

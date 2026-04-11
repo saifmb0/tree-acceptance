@@ -1,0 +1,19 @@
+2026-04-11 04:57:59.185 | INFO     | __main__:<module>:113 - Config saved → results/config_20260411_045759.json
+2026-04-11 04:57:59.421 | INFO     | __main__:<module>:122 - Device: cuda
+2026-04-11 04:57:59.453 | INFO     | __main__:<module>:129 -   GPU 0: Tesla T4, 15.6 GB
+2026-04-11 04:57:59.453 | INFO     | __main__:<module>:129 -   GPU 1: Tesla T4, 15.6 GB
+2026-04-11 04:57:59.454 | INFO     | __main__:<module>:220 - Loading target: TheBloke/Llama-2-7B-Chat-GPTQ
+2026-04-11 04:58:14.072 | INFO     | __main__:_load_model:204 - Loading TheBloke/Llama-2-7B-Chat-GPTQ via transformers GPTQ (optimum backend)
+2026-04-11 04:58:38.627 | INFO     | __main__:<module>:230 - Loading draft: TinyLlama/TinyLlama-1.1B-Chat-v1.0
+2026-04-11 04:58:38.627 | INFO     | __main__:_load_model:211 - Loading TinyLlama/TinyLlama-1.1B-Chat-v1.0 fp16
+2026-04-11 04:58:54.036 | INFO     | __main__:<module>:236 -   GPU 0: 2.75 GB allocated
+2026-04-11 04:58:54.036 | INFO     | __main__:<module>:236 -   GPU 1: 3.35 GB allocated
+2026-04-11 04:59:12.263 | INFO     | __main__:_safe_load:299 - Loaded openai_humaneval: 50 samples
+2026-04-11 04:59:12.977 | WARNING  | __main__:_safe_load:302 - Skipping dataset hendrycks/competition_math due to load error: Couldn't find any data file at /kaggle/working/tree-acceptance/hendrycks/competition_math. Couldn't find 'hendrycks/competition_math' on the Hugging Face Hub either: LocalEntryNotFoundError: An error happened while trying to locate the file on the Hub and we cannot find the requested files in the local cache. Please check your connection and try again or make sure your Internet connection is on.
+2026-04-11 04:59:32.073 | INFO     | __main__:_safe_load:299 - Loaded openai/gsm8k: 50 samples
+2026-04-11 04:59:38.777 | WARNING  | __main__:_safe_load:302 - Skipping dataset ShareGPT due to load error: No (supported) data files found in anon8231489123/ShareGPT_Vicuna_unfiltered
+2026-04-11 04:59:38.777 | INFO     | __main__:<module>:312 - Total samples: 100
+2026-04-11 04:59:38.777 | INFO     | __main__:<module>:314 -   code: 50
+2026-04-11 04:59:38.777 | INFO     | __main__:<module>:314 -   math: 0
+2026-04-11 04:59:38.777 | INFO     | __main__:<module>:314 -   reasoning: 50
+2026-04-11 04:59:38.777 | INFO     | __main__:<module>:314 -   chat: 0
