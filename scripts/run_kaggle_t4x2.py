@@ -249,8 +249,32 @@ class Sample:
     reference: str = None
 
 
+def _load_dataset_with_hub_fallback(*args, **kwargs):
+    """Try current endpoint first, then retry against huggingface.co if needed."""
+    try:
+        return load_dataset(*args, **kwargs)
+    except Exception as first_exc:
+        endpoint_vars = ("HF_ENDPOINT", "HF_HUB_ENDPOINT", "HUGGINGFACE_HUB_ENDPOINT")
+        active = {k: os.environ.get(k) for k in endpoint_vars if os.environ.get(k)}
+        if not active:
+            raise
+
+        logger.warning(
+            f"Dataset load failed via mirror ({first_exc}); retrying via huggingface.co"
+        )
+
+        for key in endpoint_vars:
+            os.environ.pop(key, None)
+
+        try:
+            return load_dataset(*args, **kwargs)
+        finally:
+            for key, value in active.items():
+                os.environ[key] = value
+
+
 def load_humaneval(max_n: int) -> list[Sample]:
-    ds = load_dataset("openai_humaneval", split="test")
+    ds = _load_dataset_with_hub_fallback("openai_humaneval", split="test")
     return [
         Sample(f'he_{r["task_id"]}', "code", r["prompt"], r.get("canonical_solution"))
         for i, r in enumerate(ds) if i < max_n
@@ -258,7 +282,7 @@ def load_humaneval(max_n: int) -> list[Sample]:
 
 
 def load_math(max_n: int) -> list[Sample]:
-    ds = load_dataset("hendrycks/competition_math", split="test")
+    ds = _load_dataset_with_hub_fallback("hendrycks/competition_math", split="test")
     return [
         Sample(
             f"math_{i}", "math",
@@ -270,7 +294,7 @@ def load_math(max_n: int) -> list[Sample]:
 
 
 def load_gsm8k(max_n: int) -> list[Sample]:
-    ds = load_dataset("openai/gsm8k", "main", split="test")
+    ds = _load_dataset_with_hub_fallback("openai/gsm8k", "main", split="test")
     return [
         Sample(
             f"gsm_{i}", "reasoning",
@@ -283,14 +307,24 @@ def load_gsm8k(max_n: int) -> list[Sample]:
 
 def load_sharegpt(max_n: int) -> list[Sample]:
     # Mirror layouts differ: try default config first, then known sub-config.
-    try:
-        ds = load_dataset("anon8231489123/ShareGPT_Vicuna_unfiltered", split="train")
-    except Exception:
-        ds = load_dataset(
-            "anon8231489123/ShareGPT_Vicuna_unfiltered",
-            "HTML_cleaned_raw_dataset",
-            split="train",
-        )
+    candidates = [None, "HTML_cleaned_raw_dataset"]
+    last_exc = None
+    ds = None
+    for cfg_name in candidates:
+        try:
+            if cfg_name is None:
+                ds = _load_dataset_with_hub_fallback(
+                    "anon8231489123/ShareGPT_Vicuna_unfiltered", split="train"
+                )
+            else:
+                ds = _load_dataset_with_hub_fallback(
+                    "anon8231489123/ShareGPT_Vicuna_unfiltered", cfg_name, split="train"
+                )
+            break
+        except Exception as exc:
+            last_exc = exc
+    if ds is None:
+        raise RuntimeError(f"ShareGPT dataset/config unavailable: {last_exc}")
     samples: list[Sample] = []
     for i, r in enumerate(ds):
         if len(samples) >= max_n:
