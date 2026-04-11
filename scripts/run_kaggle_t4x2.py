@@ -45,6 +45,7 @@ parser.add_argument("--max-branch",  type=int, default=5)
 parser.add_argument("--max-nodes",   type=int, default=64)
 parser.add_argument("--temperature", type=float, default=0.0)
 parser.add_argument("--target-id",   default="TheBloke/Llama-2-7B-Chat-GPTQ")
+parser.add_argument("--target-fallback-id", default="TheBloke/Llama-2-7B-Chat-fp16")
 parser.add_argument("--draft-id",    default="TinyLlama/TinyLlama-1.1B-Chat-v1.0")
 args = parser.parse_args()
 
@@ -60,6 +61,7 @@ logger.add(OUTDIR / f"run_{TS}.log", level="DEBUG", rotation="50 MB")
 # ── 3. Config ─────────────────────────────────────────────────────────
 CFG = {
     "target_id":  args.target_id,
+    "target_fallback_id": args.target_fallback_id,
     "draft_id":   args.draft_id,
     "max_depth":  args.max_depth,
     "top_k":      args.top_k,
@@ -112,16 +114,31 @@ sns.set_theme(style="whitegrid", context="paper", font_scale=1.2)
 # from_pretrained with no extra quantization_config — it reads the model's
 # own config.json.  For plain fp16 drafts we pass torch_dtype explicitly.
 def _load_model(model_id: str, is_target: bool):
-    """Load target (GPTQ-native via transformers+optimum) or draft (fp16)."""
+    """Load target (GPTQ-native) or draft (fp16), with target fallback."""
     if is_target:
         # The GPTQ repo stores its quantization_config in config.json;
         # transformers reads it automatically — do NOT pass a second one.
         logger.info(f"Loading {model_id} via transformers GPTQ (optimum backend)")
-        return AutoModelForCausalLM.from_pretrained(
-            model_id,
-            device_map="auto",
-            trust_remote_code=True,
-        )
+        try:
+            return AutoModelForCausalLM.from_pretrained(
+                model_id,
+                device_map="auto",
+                trust_remote_code=True,
+            )
+        except Exception as exc:
+            fallback_id = CFG.get("target_fallback_id")
+            logger.warning(f"GPTQ load failed for {model_id}: {exc}")
+            if not fallback_id:
+                raise
+            logger.warning(
+                f"Falling back to non-GPTQ target model: {fallback_id}"
+            )
+            return AutoModelForCausalLM.from_pretrained(
+                fallback_id,
+                device_map="auto",
+                trust_remote_code=True,
+                torch_dtype=torch.float16,
+            )
     else:
         logger.info(f"Loading {model_id} fp16")
         return AutoModelForCausalLM.from_pretrained(
