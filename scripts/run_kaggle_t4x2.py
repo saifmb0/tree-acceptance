@@ -15,6 +15,7 @@ import csv
 import json
 import os
 import random
+import subprocess
 import sys
 import time
 from dataclasses import dataclass, field
@@ -32,6 +33,32 @@ import torch.nn.functional as F
 from datasets import load_dataset
 from loguru import logger
 from tqdm.auto import tqdm
+
+
+def _fix_torchvision_cuda_mismatch() -> None:
+    """Remove broken torchvision install if CUDA majors don't match torch.
+
+    On Kaggle/Colab, users often upgrade torch without upgrading torchvision,
+    which can crash *any* transformers import chain that touches image_utils.
+    """
+    try:
+        import torchvision  # noqa: F401
+    except Exception as exc:
+        msg = str(exc)
+        if "compiled with different CUDA major versions" in msg:
+            print("[runtime-fix] Detected torch/torchvision CUDA mismatch; uninstalling torchvision.")
+            subprocess.run(
+                [sys.executable, "-m", "pip", "uninstall", "-y", "torchvision"],
+                check=False,
+            )
+            for mod in list(sys.modules.keys()):
+                if mod.startswith("torchvision"):
+                    del sys.modules[mod]
+        else:
+            print(f"[runtime-fix] torchvision import warning: {exc}")
+
+
+_fix_torchvision_cuda_mismatch()
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 # ── 1. CLI ────────────────────────────────────────────────────────────
