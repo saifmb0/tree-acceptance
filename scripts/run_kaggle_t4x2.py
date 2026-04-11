@@ -314,7 +314,7 @@ def load_math(max_n: int) -> list[Sample]:
     # fall back to a math-like benchmark split from GSM8K to preserve task coverage.
     loaders = [
         ("hendrycks/competition_math", lambda: _load_dataset_with_hub_fallback("hendrycks/competition_math", split="test"), "problem", "solution"),
-        ("EleutherAI/hendrycks_math", lambda: _load_dataset_with_hub_fallback("EleutherAI/hendrycks_math", split="test"), "problem", "solution"),
+        ("EleutherAI/hendrycks_math", lambda: _load_dataset_with_hub_fallback("EleutherAI/hendrycks_math", "algebra", split="test"), "problem", "solution"),
         ("openai/gsm8k-as-math", lambda: _load_dataset_with_hub_fallback("openai/gsm8k", "main", split="test"), "question", "answer"),
     ]
 
