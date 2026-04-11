@@ -1,0 +1,85 @@
+\relax 
+\providecommand\hyper@newdestlabel[2]{}
+\providecommand\HyperFirstAtBeginDocument{\AtBeginDocument}
+\HyperFirstAtBeginDocument{\ifx\hyper@anchor\@undefined
+\global\let\oldcontentsline\contentsline
+\gdef\contentsline#1#2#3#4{\oldcontentsline{#1}{#2}{#3}}
+\global\let\oldnewlabel\newlabel
+\gdef\newlabel#1#2{\newlabelxx{#1}#2}
+\gdef\newlabelxx#1#2#3#4#5#6{\oldnewlabel{#1}{{#2}{#3}}}
+\AtEndDocument{\ifx\hyper@anchor\@undefined
+\let\contentsline\oldcontentsline
+\let\newlabel\oldnewlabel
+\fi}
+\fi}
+\global\let\hyper@last\relax 
+\gdef\HyperFirstAtBeginDocument#1{#1}
+\providecommand\HyField@AuxAddToFields[1]{}
+\providecommand\HyField@AuxAddToCoFields[2]{}
+\citation{leviathan2023}
+\citation{miao2024specinfer,cai2024medusa}
+\citation{leviathan2023}
+\citation{chen2023accelerating}
+\citation{miao2024specinfer}
+\citation{cai2024medusa}
+\citation{miao2024specinfer}
+\@writefile{toc}{\contentsline {section}{\numberline {I}Introduction}{1}{section.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {II}Related Work}{1}{section.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {II-A}}Speculative Decoding}{1}{subsection.2.1}\protected@file@percent }
+\citation{leviathan2023,stern2018blockwise}
+\citation{zhou2024distillspec}
+\citation{zheng2023judging}
+\citation{chen2021evaluating}
+\citation{touvron2023llama}
+\citation{zhang2024tinyllama}
+\citation{leviathan2023}
+\citation{chen2021evaluating}
+\citation{hendrycks2021measuring}
+\citation{cobbe2021training}
+\citation{ding2023enhancing}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {II-B}}Tree-Based Extensions}{2}{subsection.2.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {II-C}}Acceptance Probability Analyses}{2}{subsection.2.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {II-D}}Efficiency Benchmarking}{2}{subsection.2.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {III}Methodology}{2}{section.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-A}}Models}{2}{subsection.3.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-B}}Tree Construction}{2}{subsection.3.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-C}}Acceptance Scoring}{2}{subsection.3.3}\protected@file@percent }
+\newlabel{eq:alpha}{{1}{2}{Acceptance Scoring}{equation.3.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-D}}Benchmark Datasets}{2}{subsection.3.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-E}}Tree Hyperparameters}{2}{subsection.3.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {IV}Experimental Setup}{2}{section.4}\protected@file@percent }
+\citation{miao2024specinfer}
+\@writefile{toc}{\contentsline {section}{\numberline {V}Results}{3}{section.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-A}}Summary Statistics}{3}{subsection.5.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {I}{\ignorespaces Per-domain speculative node statistics. $\alpha $: token-level acceptance probability (Eq.\nobreakspace  {}\ref  {eq:alpha}). $H$: mean target entropy (nats).}}{3}{table.1}\protected@file@percent }
+\newlabel{tab:summary}{{I}{3}{Per-domain speculative node statistics. $\alpha $: token-level acceptance probability (Eq.~\ref {eq:alpha}). $H$: mean target entropy (nats)}{table.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-B}}Expected Accepted Length}{3}{subsection.5.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {II}{\ignorespaces Expected accepted length per domain. Values $> 1.0$ indicate the speculation yields on average more than one accepted token per target call.}}{3}{table.2}\protected@file@percent }
+\newlabel{tab:el}{{II}{3}{Expected accepted length per domain. Values $> 1.0$ indicate the speculation yields on average more than one accepted token per target call}{table.2}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {III}{\ignorespaces Probability of a fully accepted chain of length $d$ (i.e., all $d$ nodes on the root-to-leaf path are accepted).}}{3}{table.3}\protected@file@percent }
+\newlabel{tab:cum}{{III}{3}{Probability of a fully accepted chain of length $d$ (i.e., all $d$ nodes on the root-to-leaf path are accepted)}{table.3}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {IV}{\ignorespaces Mean acceptance rate $\bar  {\alpha }$ at each tree depth, per domain.}}{3}{table.4}\protected@file@percent }
+\newlabel{tab:depth}{{IV}{3}{Mean acceptance rate $\bar {\alpha }$ at each tree depth, per domain}{table.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-C}}Depth--Acceptance Profile}{3}{subsection.5.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-D}}Entropy--Acceptance Correlation}{3}{subsection.5.4}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {V}{\ignorespaces Spearman $\rho $ between target entropy $H_n$ and acceptance probability $\alpha _n$ at the node level.}}{3}{table.5}\protected@file@percent }
+\newlabel{tab:rho}{{V}{3}{Spearman $\rho $ between target entropy $H_n$ and acceptance probability $\alpha _n$ at the node level}{table.5}{}}
+\bibstyle{unsrtnat}
+\bibdata{refs}
+\bibcite{leviathan2023}{{1}{2023}{{Leviathan et~al.}}{{Leviathan, Kalman, and Matias}}}
+\bibcite{miao2024specinfer}{{2}{2024}{{Miao et~al.}}{{Miao, Oliaro, Zhang, Cheng, Wang, Zhang, Wong, Zhu, Yang, Shi, et~al.}}}
+\bibcite{cai2024medusa}{{3}{2024}{{Cai et~al.}}{{Cai, Li, Geng, Peng, Lee, Chen, and Dao}}}
+\bibcite{chen2023accelerating}{{4}{2023}{{Chen et~al.}}{{Chen, Borgeaud, Irving, Lespiau, Sifre, and Jumper}}}
+\bibcite{stern2018blockwise}{{5}{2018}{{Stern et~al.}}{{Stern, Shazeer, and Uszkoreit}}}
+\bibcite{zhou2024distillspec}{{6}{2024}{{Zhou et~al.}}{{Zhou, Lyu, Rawat, Menon, Rostamizadeh, Kumar, Kagy, and Agarwal}}}
+\bibcite{zheng2023judging}{{7}{2023}{{Zheng et~al.}}{{Zheng, Chiang, Sheng, Zhuang, Wu, Zhuang, Lin, Li, Li, Xing, et~al.}}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-E}}The Chat Paradox}{4}{subsection.5.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {VI}Discussion}{4}{section.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {VII}Conclusion}{4}{section.7}\protected@file@percent }
+\bibcite{chen2021evaluating}{{8}{2021}{{Chen et~al.}}{{Chen, Tworek, Jun, Yuan, Pinto, Kaplan, Edwards, Burda, Joseph, Brockman, et~al.}}}
+\bibcite{touvron2023llama}{{9}{2023}{{Touvron et~al.}}{{Touvron, Martin, Stone, Albert, Almahairi, Babaei, Bashlykov, Batra, Bhargava, Bhosale, et~al.}}}
+\bibcite{zhang2024tinyllama}{{10}{2024}{{Zhang et~al.}}{{Zhang, Zeng, Wang, and Lu}}}
+\bibcite{hendrycks2021measuring}{{11}{2021}{{Hendrycks et~al.}}{{Hendrycks, Burns, Kadavath, Arora, Basart, Tang, Song, and Steinhardt}}}
+\bibcite{cobbe2021training}{{12}{2021}{{Cobbe et~al.}}{{Cobbe, Kosaraju, Bavarian, Chen, Jun, Kaiser, Plappert, Tworek, Hilton, Nakano, et~al.}}}
+\bibcite{ding2023enhancing}{{13}{2023}{{Ding et~al.}}{{Ding, Chen, Xu, Qin, Zheng, Hu, Liu, Sun, and Zhou}}}
+\gdef \@abspage@last{5}

@@ -1,0 +1,472 @@
+\documentclass[conference]{IEEEtran}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{multirow}
+\usepackage{microtype}
+\usepackage[numbers,sort&compress]{natbib}
+\hypersetup{colorlinks=true,linkcolor=black,citecolor=black,urlcolor=blue}
+
+\begin{document}
+
+\title{Task-Dependent Acceptance Dynamics in Tree-Based Speculative Decoding:\\
+An Empirical Study Across Cognitive Domains}
+
+\author{
+  \IEEEauthorblockN{Saif M.B.}
+  \IEEEauthorblockA{Department of Computer Science \\
+  Aalborg University \\
+  Aalborg, Denmark \\
+  contact@saifmb.com}
+}
+
+\maketitle
+
+\begin{abstract}
+Speculative decoding accelerates large language model (LLM) inference by
+using a small draft model to propose a tree of future tokens which a larger
+target model then verifies in a single batched forward pass. Despite the
+growing body of work on speculative methods, the \emph{degree to which the
+cognitive characteristics of a task affect acceptance probability} remains
+largely unexplored. We present an empirical study of tree-based speculative
+decoding acceptance dynamics across four well-established NLP benchmark
+domains---code generation, mathematical reasoning, logical reasoning, and
+open-ended chat---using \texttt{TinyLlama-1.1B} as the draft model against
+\texttt{Llama-2-7B-Chat-GPTQ} as the target. Over 99,768 speculative nodes
+collected from 200 prompts, we derive per-domain acceptance rates, expected
+accepted lengths, depth-acceptance profiles, and entropy--acceptance
+correlations. We find that task type is a stronger predictor of acceptance
+than tree depth, that only the chat domain consistently yields an expected
+accepted length exceeding 1.0 token per step, and that entropy--acceptance
+correlation is consistently negative but weak across all domains ($\rho \in
+[-0.20, -0.15]$). Counterintuitively, chat produces the highest entropy yet
+the highest acceptance rate, a divergence we attribute to the lexical
+predictability of RLHF-aligned register. These findings have direct
+implications for domain-aware speculation budgets and draft-model selection
+strategies.
+\end{abstract}
+
+\begin{IEEEkeywords}
+speculative decoding, large language model inference, tree attention,
+draft model, acceptance probability, LLM efficiency
+\end{IEEEkeywords}
+
+% ── §1 Introduction ──────────────────────────────────────────────────
+\section{Introduction}
+
+Autoregressive generation in transformer-based LLMs proceeds one token at a
+time. Because each forward pass through a large model is memory-bandwidth
+bound rather than compute bound, the latency of producing $N$ tokens scales
+linearly with $N$ and with model size, making interactive deployment of
+7B-parameter and larger models challenging on commodity hardware.
+
+\emph{Speculative decoding}~\cite{leviathan2023} addresses this bottleneck by
+observing that a cheap draft model can propose candidate token sequences that
+a larger, more accurate target model may verify in parallel. The expected
+number of tokens accepted per target forward pass---the
+\emph{expected accepted length}, $E[L]$---directly governs the wall-clock
+speedup: if $E[L] > 1$, the target model effectively generates more than one
+token per invocation, reducing total latency.
+
+The seminal proposal evaluated acceptance under relatively homogeneous
+conditions; subsequent work has extended speculative methods to tree-shaped
+drafts~\cite{miao2024specinfer,cai2024medusa} where the draft model proposes
+a branching set of future hypotheses rather than a single sequence, further
+increasing the theoretical ceiling on $E[L]$. In a tree draft of depth $d$
+and maximum branching factor $b$, up to $b^d$ candidates are verified in a
+single target pass.
+
+A critical practical question that has received less attention is: \emph{to
+what extent does task type determine acceptance probability?} If the gap
+between domains is substantial, practitioners should tailor speculation
+budgets---draft depth, branching factor, and even draft model selection---on
+a per-task basis rather than applying a universal configuration. Answering
+this question empirically motivates the present work.
+
+We make the following contributions:
+\begin{itemize}
+  \item A reproducible, end-to-end benchmark of tree-based speculative
+        decoding acceptance across four cognitive domains, totalling 99,768
+        node-level observations.
+  \item Quantification of per-domain expected accepted length, showing only
+        chat exceeds $E[L]=1.0$ under the present configuration
+        ($E[L]_{\text{chat}} = 1.065$).
+  \item Empirical characterisation of the depth--acceptance relationship,
+        revealing a small but consistent \emph{positive} trend with depth
+        that contradicts the naive expectation of decay.
+  \item Analysis of the entropy--acceptance correlation and the \emph{chat
+        paradox}: the highest-entropy domain simultaneously exhibits the
+        highest acceptance rate, suggesting that token-level lexical
+        predictability and semantic-distributional entropy are orthogonal.
+\end{itemize}
+
+% ── §2 Related Work ──────────────────────────────────────────────────
+\section{Related Work}
+
+\subsection{Speculative Decoding}
+\citet{leviathan2023} and \citet{chen2023accelerating} independently proposed
+the core speculative decoding framework. A draft model generates $K$ tokens
+autoregressively; the target model scores all $K+1$ positions in a single
+forward pass; tokens are accepted token-by-token via a rejection sampling
+scheme that preserves the target distribution exactly.
+
+\subsection{Tree-Based Extensions}
+\citet{miao2024specinfer} and \citet{cai2024medusa} extend the linear draft
+to a tree structure, enabling the target model to evaluate exponentially many
+candidate continuations per forward pass. Tree attention~\cite{miao2024specinfer}
+modifies the self-attention mask so that each leaf's context is isolated from
+sibling branches. The expected accepted length for a tree draft satisfies
+$E[L] = \sum_{d=1}^{D} \prod_{k=1}^{d} \alpha_k$ where $\alpha_k$ is the
+acceptance probability at depth $k$.
+
+\subsection{Acceptance Probability Analyses}
+Prior analytical work~\cite{leviathan2023,stern2018blockwise} establishes
+that acceptance rate depends on the KL-divergence between draft and target
+distributions. \citet{zhou2024distillspec} show that distilling the target
+into the draft increases acceptance. To our knowledge, no prior work provides
+systematic cross-domain acceptance measurements using an \emph{unmodified,
+off-the-shelf} draft model at tree depth $> 1$.
+
+\subsection{Efficiency Benchmarking}
+Benchmarks such as MTBench~\cite{zheng2023judging} and
+HumanEval~\cite{chen2021evaluating} evaluate generation \emph{quality} but
+not the inference-efficiency characteristics of speculative methods across
+task types. Our work is orthogonal, focusing on acceptance physics rather
+than output correctness.
+
+% ── §3 Methodology ───────────────────────────────────────────────────
+\section{Methodology}
+
+\subsection{Models}
+We select a draft--target pair that represents a practical deployment
+scenario: a quantized 7B-parameter target and a 1.1B-parameter draft from a
+compatible model family.
+
+\textbf{Target model:} \texttt{TheBloke/Llama-2-7B-Chat-GPTQ}~\cite{touvron2023llama},
+a 4-bit GPTQ-quantized variant of Llama-2-7B-Chat. GPTQ quantization reduces
+VRAM footprint with negligible perplexity degradation, enabling fitting on a
+single 16\,GB GPU.
+
+\textbf{Draft model:} \texttt{TinyLlama/TinyLlama-1.1B-Chat-v1.0}~\cite{zhang2024tinyllama},
+a 1.1B-parameter model trained on 3T tokens with the Llama-2 architecture and
+subsequently instruction-tuned on chat data. The shared vocabulary and
+architectural lineage make it a natural draft candidate for Llama-2 targets.
+
+\subsection{Tree Construction}
+At each generation step we build a draft tree as follows:
+\begin{enumerate}
+  \item The draft model performs a full forward pass over the current context
+        with top-$k$ sampling at depth 1, producing root candidates.
+  \item For each node at depth $d < D_{\max}$, the draft model scores the
+        path from the root to that node concatenated to the current context,
+        and expands the top-$b_{\max}$ children.
+  \item This yields at most $N_{\max}$ nodes per tree.
+\end{enumerate}
+
+All forward passes use \texttt{use\_cache=False} to ensure the tree
+construction is independent of any KV-cache state (since tree-branching
+invalidates a linear cache). The entire frontier per depth level is evaluated
+as a single batched tensor call, avoiding per-node sequential overhead.
+
+\subsection{Acceptance Scoring}
+After tree construction, the target model scores all tree leaves in a single
+batched forward pass that also includes the empty-prefix row, from which the
+greedy next token is simultaneously extracted (eliminating one otherwise
+redundant target call per generation step).
+
+For each node $n$ with token $t_n$, draft probability $p^{\text{draft}}(t_n)$,
+and target probability $p^{\text{target}}(t_n)$, the acceptance probability is:
+\begin{equation}
+  \alpha_n = \min\!\left(1,\; \frac{p^{\text{target}}(t_n)}{p^{\text{draft}}(t_n)}\right)
+  \label{eq:alpha}
+\end{equation}
+This is the standard speculative rejection-sampling rule~\cite{leviathan2023}.
+
+Target entropy at node $n$ is computed from the full target distribution:
+\begin{equation}
+  H_n = -\sum_v p^{\text{target}}(v)\log p^{\text{target}}(v)
+\end{equation}
+
+\subsection{Benchmark Datasets}
+
+\textbf{Code} --- \texttt{openai/humaneval}~\cite{chen2021evaluating}: the
+canonical Python programming task benchmark. Prompts are function signatures
+with docstrings; the model is expected to complete the body.
+
+\textbf{Math} --- \texttt{EleutherAI/hendrycks\_math} (algebra
+subset)~\cite{hendrycks2021measuring}: competition-level algebra problems
+requiring multi-step symbolic reasoning.
+
+\textbf{Reasoning} --- \texttt{openai/gsm8k}~\cite{cobbe2021training}:
+grade-school arithmetic word problems requiring chain-of-thought numeric
+reasoning.
+
+\textbf{Chat} --- \texttt{HuggingFaceH4/ultrachat\_200k}~\cite{ding2023enhancing}:
+multi-turn instruction-following dialogue drawn from a large-scale RLHF
+dataset, representing open-ended conversational generation.
+
+Fifty prompts per domain are sampled; generation is capped at 64 tokens.
+All prompts are truncated to 512 tokens to bound the $O(N^2)$ attention
+complexity during tree evaluation.
+
+\subsection{Tree Hyperparameters}
+\begin{center}
+\begin{tabular}{lc}
+\toprule
+Hyperparameter & Value \\
+\midrule
+Max tree depth $D_{\max}$ & 3 \\
+Max branches per node $b_{\max}$ & 2 \\
+Top-$k$ (root) & 3 \\
+Max nodes per tree $N_{\max}$ & 8 \\
+Temperature & 0 (greedy) \\
+Max generated tokens & 64 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+% ── §4 Experimental Setup ─────────────────────────────────────────────
+\section{Experimental Setup}
+
+All experiments are executed on a Kaggle Notebook instance with two NVIDIA
+Tesla T4 GPUs (15.6\,GB VRAM each). The target model is pinned to
+\texttt{cuda:0} and the draft model to \texttt{cuda:1}, using
+\texttt{gptqmodel} 6.0.3 and \texttt{transformers} 5.5.3 under PyTorch
+2.11.0+cu130. The GPTQ kernel selected at runtime is \texttt{TritonV2QuantLinear}.
+All results are reproducible with a fixed seed of 42.
+
+% ── §5 Results ───────────────────────────────────────────────────────
+\section{Results}
+
+\subsection{Summary Statistics}
+
+Table~\ref{tab:summary} reports per-domain acceptance rates and target entropy.
+A total of 99,768 speculative node observations are collected across 200 prompts.
+
+\begin{table}[h]
+\centering
+\caption{Per-domain speculative node statistics. $\alpha$: token-level
+acceptance probability (Eq.~\ref{eq:alpha}). $H$: mean target entropy (nats).}
+\label{tab:summary}
+\begin{tabular}{lrrrr}
+\toprule
+Domain & Nodes & $\bar{\alpha}$ & $\sigma_\alpha$ & $\bar{H}$ \\
+\midrule
+Chat      & 24{,}592 & 0.5650 & 0.4415 & 1.2517 \\
+Code      & 25{,}600 & 0.5382 & 0.4536 & 0.8858 \\
+Math      & 25{,}392 & 0.5181 & 0.4501 & 1.1513 \\
+Reasoning & 24{,}184 & 0.5321 & 0.4517 & 0.8943 \\
+\midrule
+\textbf{All} & \textbf{99,768} & \textbf{0.5384} & \textbf{0.4500} & \textbf{1.0458} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+All domains exhibit acceptance rates near 0.5, reflecting the fundamental
+difficulty for a 1B model to track the token-level distribution of a 7B model.
+However, the 10\% relative gap between chat (0.565) and math (0.518) is
+practically significant given its cubic amplification inside the expected
+accepted length formula.
+
+\subsection{Expected Accepted Length}
+
+The expected accepted length $E[L]$ is the key operational metric for
+assessing inference speedup. As defined by the cumulative chain
+probability~\cite{miao2024specinfer}:
+\begin{equation}
+  E[L] = \sum_{d=1}^{D} \prod_{k=1}^{d} \bar{\alpha}_k
+\end{equation}
+
+\begin{table}[h]
+\centering
+\caption{Expected accepted length per domain. Values $> 1.0$ indicate the
+speculation yields on average more than one accepted token per target call.}
+\label{tab:el}
+\begin{tabular}{lcc}
+\toprule
+Domain & $E[L]$ & Speedup Regime \\
+\midrule
+Chat      & 1.065 & \textbf{Positive} \\
+Code      & 0.975 & Marginal \\
+Reasoning & 0.956 & Marginal \\
+Math      & 0.914 & Negative \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:el} reveals a clear stratification. Only chat surpasses the
+$E[L]=1.0$ threshold, meaning speculative decoding is expected to reduce
+total target forward passes for conversational generation. Math sits below
+0.92, indicating that the overhead of running the draft model and the tree
+construction erodes any per-pass gain under the current configuration.
+
+The cumulative chain probability decays geometrically with depth for all
+domains (Table~\ref{tab:cum}). At depth 3, chat retains 18.4\% probability
+of a fully accepted chain, compared to only 13.9\% for math.
+
+\begin{table}[h]
+\centering
+\caption{Probability of a fully accepted chain of length $d$ (i.e., all $d$
+nodes on the root-to-leaf path are accepted).}
+\label{tab:cum}
+\begin{tabular}{lccc}
+\toprule
+Domain & $d=1$ & $d=2$ & $d=3$ \\
+\midrule
+Chat      & 0.567 & 0.313 & 0.184 \\
+Code      & 0.533 & 0.287 & 0.156 \\
+Reasoning & 0.526 & 0.280 & 0.151 \\
+Math      & 0.510 & 0.265 & 0.139 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Depth--Acceptance Profile}
+
+A natural hypothesis is that acceptance probability decays with tree depth,
+since nodes deeper in the tree condition on increasingly uncertain draft-generated
+prefixes. Our data refutes this.
+
+\begin{table}[h]
+\centering
+\caption{Mean acceptance rate $\bar{\alpha}$ at each tree depth, per domain.}
+\label{tab:depth}
+\begin{tabular}{lcccc}
+\toprule
+ & \multicolumn{4}{c}{Depth} \\
+\cmidrule(lr){2-5}
+Domain & 1 & 2 & 3 & $\Delta_{1\to3}$ \\
+\midrule
+Chat      & 0.567 & 0.553 & 0.588 & $+0.021$ \\
+Code      & 0.533 & 0.538 & 0.544 & $+0.011$ \\
+Math      & 0.510 & 0.519 & 0.525 & $+0.015$ \\
+Reasoning & 0.526 & 0.532 & 0.538 & $+0.012$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Across all four domains, $\bar\alpha$ \emph{increases} slightly from depth 1
+to depth 3 (Table~\ref{tab:depth}). This is small in absolute magnitude
+(+0.011 to +0.021) but consistent across domains and supported by
+approximately 6,000--13,000 observations per cell.
+
+We interpret this as a \emph{context-commitment effect}: at depth 1, the draft
+must predict the next content word from an open distribution---the hardest
+prediction task. Once a syntactic and semantic direction is committed at depth
+1, the subsequent tokens in the same chain are more constrained (e.g., the
+completion of a phrase, the end of a numeric expression), and both the draft
+and target model agree on that completion more readily. The depth-1 node
+represents the \emph{semantic pivot}, while depth-2 and depth-3 nodes are
+increasingly syntactic complements.
+
+\subsection{Entropy--Acceptance Correlation}
+
+To test whether target model uncertainty predicts draft rejection, we compute
+the Spearman correlation coefficient $\rho$ between $H_n$ and $\alpha_n$ for
+each domain.
+
+\begin{table}[h]
+\centering
+\caption{Spearman $\rho$ between target entropy $H_n$ and acceptance
+probability $\alpha_n$ at the node level.}
+\label{tab:rho}
+\begin{tabular}{lc}
+\toprule
+Domain & $\rho(H, \alpha)$ \\
+\midrule
+Chat      & $-0.202$ \\
+Code      & $-0.194$ \\
+Math      & $-0.186$ \\
+Reasoning & $-0.149$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+All correlations are negative (higher entropy $\to$ lower acceptance) and
+statistically significant at $p < 0.001$ given the node-level sample sizes.
+However, the magnitude is uniformly weak ($|\rho| < 0.21$). This indicates
+that entropy is a \emph{necessary but not sufficient} predictor of acceptance.
+The dominant predictor of whether a draft token is accepted is the hard
+probability ratio $p^{\text{target}}/p^{\text{draft}}$ under the specific
+token proposed, not the marginal uncertainty of the target distribution.
+
+\subsection{The Chat Paradox}
+
+The most striking finding in Table~\ref{tab:summary} is that chat exhibits
+\emph{simultaneously} the highest target entropy (1.252 nats) and the highest
+acceptance rate (0.565). Code and reasoning have lower entropy ($\approx 0.89$
+nats) yet lower acceptance. Math occupies an intermediate entropy position
+(1.151 nats) but achieves the lowest acceptance.
+
+These observations jointly refute a simple entropy-determines-acceptance
+narrative. We propose the following explanation. Target entropy measures the
+\emph{diversity} of the target model's next-token distribution, not the degree
+of agreement between draft and target. In chat, the target model spreads
+probability mass over many semantically valid continuations---producing high
+entropy---but the particular tokens it favours are stylistically common
+conversational tokens that the draft model has also learned to preferentially
+predict (e.g., filler tokens, discourse markers, formulaic response openers).
+The result is that $p^{\text{draft}}$ and $p^{\text{target}}$ peak at the
+same tokens even though both distributions are broad.
+
+In contrast, mathematical text has moderate entropy but imposes strong
+constraints on \emph{which specific} tokens are numerically correct. The
+target model places high probability on a small set of numeric and symbolic
+tokens that the draft model---lacking the arithmetic precision of a 7B
+model---selects less reliably. Low token overlap between the two models'
+distributions drives low acceptance despite moderate entropy.
+
+% ── §6 Discussion ────────────────────────────────────────────────────
+\section{Discussion}
+
+\textbf{Practical implications.} Our results suggest that the quality of
+speculation is fundamentally coarse-grained by task type. Practitioners
+operating speculative decoding in mixed-use inference systems (e.g., an API
+serving both chat and mathematical queries) should not apply a uniform draft
+budget. For chat workloads, deeper trees (larger $D_{\max}$) and relaxed
+acceptance thresholds are well-justified; for mathematical workloads, a
+shallower tree or a domain-specifically fine-tuned draft model is preferable
+to reduce wasted draft computation.
+
+\textbf{Draft model selection.} Given the moderate but consistent acceptance
+gap, replacing TinyLlama with a maths-specialised 1B draft (e.g., a model
+fine-tuned on MATH or DeepMind's MathMix data) is a direct and
+actionable recommendation. The shared-vocabulary constraint between draft and
+target remains important; a model fine-tuned on math with the same Llama-2
+tokenizer would likely close the $E[L]$ gap substantially.
+
+\textbf{Limitations.} The experiments are conducted with greedy sampling
+(temperature 0), which represents a maximum acceptance condition for the
+rejection-sampling criterion---stochastic sampling would uniformly reduce
+$E[L]$. The tree hyperparameters (depth 3, branching factor 2) are modest;
+deeper trees may surface stronger depth-acceptance trends. All measurements
+are at the token level; output quality (pass@k for code, accuracy for math)
+is outside the scope of this study. Finally, a single draft--target pair is
+evaluated; generalisation across other model families requires further study.
+
+% ── §7 Conclusion ────────────────────────────────────────────────────
+\section{Conclusion}
+
+We have presented a systematic empirical analysis of tree-based speculative
+decoding acceptance dynamics across four NLP benchmark domains. Our principal
+findings are: (1) task type is a stronger determinant of acceptance rate than
+tree depth; (2) chat is the only domain where the expected accepted length
+exceeds 1.0 under the evaluated configuration, representing a genuine latency
+reduction; (3) acceptance probability exhibits a small positive trend with
+depth, consistent with a context-commitment effect that reduces prediction
+difficulty at deeper nodes; and (4) entropy--acceptance correlations are
+negative and statistically significant but weak, and the high-entropy chat
+paradox demonstrates that lexical predictability and semantic entropy are
+orthogonal axes.
+
+These findings motivate domain-adaptive speculation strategies and domain-specific
+draft model selection as first-class design decisions for speculative inference
+pipelines.
+
+% ── References ───────────────────────────────────────────────────────
+\bibliographystyle{unsrtnat}
+\bibliography{refs}
+
+\end{document}
