@@ -65,12 +65,12 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 # ── 1. CLI ────────────────────────────────────────────────────────────
 parser = argparse.ArgumentParser()
 parser.add_argument("--outdir",      default="results")
-parser.add_argument("--max-samples", type=int, default=50,
+parser.add_argument("--max-samples", type=int, default=10,
                     help="per-dataset sample cap")
-parser.add_argument("--max-depth",   type=int, default=6)
-parser.add_argument("--top-k",       type=int, default=10)
-parser.add_argument("--max-branch",  type=int, default=5)
-parser.add_argument("--max-nodes",   type=int, default=64)
+parser.add_argument("--max-depth",   type=int, default=3)
+parser.add_argument("--top-k",       type=int, default=5)
+parser.add_argument("--max-branch",  type=int, default=3)
+parser.add_argument("--max-nodes",   type=int, default=16)
 parser.add_argument("--temperature", type=float, default=0.0)
 parser.add_argument("--target-id",   default="TheBloke/Llama-2-7B-Chat-GPTQ")
 parser.add_argument("--draft-id",    default="TinyLlama/TinyLlama-1.1B-Chat-v1.0")
@@ -128,10 +128,10 @@ CFG = {
     "temperature": args.temperature,
     "position_bin_size": 32,
     "max_new_tokens": {
-        "code":      256,
-        "math":      512,
-        "chat":      512,
-        "reasoning": 512,
+        "code":      16,
+        "math":      16,
+        "chat":      16,
+        "reasoning": 16,
     },
     "max_samples": {
         "humaneval": args.max_samples,
