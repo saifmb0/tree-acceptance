@@ -582,7 +582,7 @@ def verify_and_score_tree(target_m, input_ids, attn_mask, tree: DraftTree) -> tu
 
     if not leaves:
         out = target_m(input_ids=input_ids, attention_mask=attn_mask, use_cache=False)
-        greedy_next_token = out.logits[0, -1, :].argmax(dim=-1, keepdim=True)
+        greedy_next_token = out.logits[0:1, -1, :].argmax(dim=-1, keepdim=True)
         return tree, ents, greedy_next_token
 
     # Batch verified evaluating target model
@@ -626,7 +626,7 @@ def verify_and_score_tree(target_m, input_ids, attn_mask, tree: DraftTree) -> tu
     batched_logits = out.logits
 
     # Extract greedy prediction for the base sequence (index 0, position base_len - 1)
-    greedy_next_token = batched_logits[0, base_len - 1, :].argmax(dim=-1, keepdim=True)
+    greedy_next_token = batched_logits[0:1, base_len - 1, :].argmax(dim=-1, keepdim=True)
 
     for b, path_ids in enumerate(path_ids_list):
         if b == 0:  # Skip the empty base path we added for the greedy prediction
