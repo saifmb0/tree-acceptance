@@ -73,6 +73,11 @@ parser.add_argument("--max-nodes",   type=int, default=64)
 parser.add_argument("--temperature", type=float, default=0.0)
 parser.add_argument("--target-id",   default="TheBloke/Llama-2-7B-Chat-GPTQ")
 parser.add_argument("--draft-id",    default="TinyLlama/TinyLlama-1.1B-Chat-v1.0")
+parser.add_argument(
+    "--allow-partial-tasks",
+    action="store_true",
+    help="Allow benchmark to run even if some task types are missing datasets.",
+)
 args = parser.parse_args()
 
 # ── 2. Timestamp & output dir ─────────────────────────────────────────
@@ -277,7 +282,15 @@ def load_gsm8k(max_n: int) -> list[Sample]:
 
 
 def load_sharegpt(max_n: int) -> list[Sample]:
-    ds = load_dataset("anon8231489123/ShareGPT_Vicuna_unfiltered", split="train")
+    # Mirror layouts differ: try default config first, then known sub-config.
+    try:
+        ds = load_dataset("anon8231489123/ShareGPT_Vicuna_unfiltered", split="train")
+    except Exception:
+        ds = load_dataset(
+            "anon8231489123/ShareGPT_Vicuna_unfiltered",
+            "HTML_cleaned_raw_dataset",
+            split="train",
+        )
     samples: list[Sample] = []
     for i, r in enumerate(ds):
         if len(samples) >= max_n:
@@ -312,6 +325,20 @@ all_samples = (
 logger.info(f"Total samples: {len(all_samples)}")
 for t in ["code", "math", "reasoning", "chat"]:
     logger.info(f"  {t}: {sum(1 for s in all_samples if s.task_type == t)}")
+
+task_counts = {
+    t: sum(1 for s in all_samples if s.task_type == t)
+    for t in ["code", "math", "reasoning", "chat"]
+}
+missing_tasks = [t for t, n in task_counts.items() if n == 0]
+
+if missing_tasks and not args.allow_partial_tasks:
+    raise RuntimeError(
+        "Missing required task datasets for: "
+        f"{', '.join(missing_tasks)}. "
+        "Refusing to run partial benchmark. "
+        "Fix dataset access or pass --allow-partial-tasks to proceed."
+    )
 
 if not all_samples:
     raise RuntimeError(
