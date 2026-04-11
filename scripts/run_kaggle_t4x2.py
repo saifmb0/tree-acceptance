@@ -93,6 +93,7 @@ logger.add(OUTDIR / f"run_{TS}.log", level="DEBUG", rotation="50 MB")
 
 def _configure_third_party_logging() -> None:
     """Mute verbose transport/library logs while keeping benchmark logs visible."""
+    os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("httpcore").setLevel(logging.WARNING)
     logging.getLogger("urllib3").setLevel(logging.WARNING)
@@ -109,6 +110,7 @@ def _configure_third_party_logging() -> None:
     try:
         from datasets.utils import logging as ds_logging
         ds_logging.set_verbosity_error()
+        ds_logging.disable_progress_bar()
     except Exception:
         pass
 
@@ -308,15 +310,33 @@ def load_humaneval(max_n: int) -> list[Sample]:
 
 
 def load_math(max_n: int) -> list[Sample]:
-    ds = _load_dataset_with_hub_fallback("hendrycks/competition_math", split="test")
-    return [
-        Sample(
-            f"math_{i}", "math",
-            f'Solve step by step.\nProblem: {r["problem"]}\nSolution:',
-            r.get("solution"),
-        )
-        for i, r in enumerate(ds) if i < max_n
+    # Primary + fallback math sources. If competition_math is blocked by mirror,
+    # fall back to a math-like benchmark split from GSM8K to preserve task coverage.
+    loaders = [
+        ("hendrycks/competition_math", lambda: _load_dataset_with_hub_fallback("hendrycks/competition_math", split="test"), "problem", "solution"),
+        ("EleutherAI/hendrycks_math", lambda: _load_dataset_with_hub_fallback("EleutherAI/hendrycks_math", split="test"), "problem", "solution"),
+        ("openai/gsm8k-as-math", lambda: _load_dataset_with_hub_fallback("openai/gsm8k", "main", split="test"), "question", "answer"),
     ]
+
+    last_exc = None
+    for source_name, builder, q_key, a_key in loaders:
+        try:
+            ds = builder()
+            rows = [
+                Sample(
+                    f"math_{i}", "math",
+                    f"Solve as a math problem. Show all intermediate steps.\nProblem: {r[q_key]}\nSolution:",
+                    r.get(a_key),
+                )
+                for i, r in enumerate(ds) if i < max_n
+            ]
+            if rows:
+                logger.info(f"Loaded math dataset from {source_name} ({len(rows)} samples)")
+                return rows
+        except Exception as exc:
+            last_exc = exc
+
+    raise RuntimeError(f"No math dataset available from configured sources: {last_exc}")
 
 
 def load_gsm8k(max_n: int) -> list[Sample]:
