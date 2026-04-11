@@ -13,6 +13,7 @@ Usage:
 import argparse
 import csv
 import json
+import logging
 import os
 import random
 import subprocess
@@ -88,6 +89,31 @@ OUTDIR.mkdir(parents=True, exist_ok=True)
 logger.remove()
 logger.add(sys.stderr, level="INFO")
 logger.add(OUTDIR / f"run_{TS}.log", level="DEBUG", rotation="50 MB")
+
+
+def _configure_third_party_logging() -> None:
+    """Mute verbose transport/library logs while keeping benchmark logs visible."""
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+    logging.getLogger("datasets").setLevel(logging.WARNING)
+    logging.getLogger("huggingface_hub").setLevel(logging.WARNING)
+    logging.getLogger("transformers").setLevel(logging.WARNING)
+
+    try:
+        from transformers.utils import logging as hf_logging
+        hf_logging.set_verbosity_error()
+    except Exception:
+        pass
+
+    try:
+        from datasets.utils import logging as ds_logging
+        ds_logging.set_verbosity_error()
+    except Exception:
+        pass
+
+
+_configure_third_party_logging()
 
 # ── 3. Config ─────────────────────────────────────────────────────────
 CFG = {
@@ -306,38 +332,67 @@ def load_gsm8k(max_n: int) -> list[Sample]:
 
 
 def load_sharegpt(max_n: int) -> list[Sample]:
-    # Mirror layouts differ: try default config first, then known sub-config.
-    candidates = [None, "HTML_cleaned_raw_dataset"]
+    sources = [
+        # Primary chat source (active and maintained).
+        {
+            "name": "HuggingFaceH4/ultrachat_200k",
+            "config": None,
+            "split": "train_sft",
+            "kind": "ultrachat",
+        },
+        # Legacy fallback source used previously.
+        {
+            "name": "anon8231489123/ShareGPT_Vicuna_unfiltered",
+            "config": "HTML_cleaned_raw_dataset",
+            "split": "train",
+            "kind": "sharegpt",
+        },
+        {
+            "name": "anon8231489123/ShareGPT_Vicuna_unfiltered",
+            "config": None,
+            "split": "train",
+            "kind": "sharegpt",
+        },
+    ]
+
     last_exc = None
-    ds = None
-    for cfg_name in candidates:
+    for src in sources:
         try:
-            if cfg_name is None:
-                ds = _load_dataset_with_hub_fallback(
-                    "anon8231489123/ShareGPT_Vicuna_unfiltered", split="train"
-                )
+            if src["config"] is None:
+                ds = _load_dataset_with_hub_fallback(src["name"], split=src["split"])
             else:
-                ds = _load_dataset_with_hub_fallback(
-                    "anon8231489123/ShareGPT_Vicuna_unfiltered", cfg_name, split="train"
-                )
-            break
+                ds = _load_dataset_with_hub_fallback(src["name"], src["config"], split=src["split"])
+
+            samples: list[Sample] = []
+            for i, r in enumerate(ds):
+                if len(samples) >= max_n:
+                    break
+
+                txt = ""
+                if src["kind"] == "ultrachat":
+                    msgs = r.get("messages", [])
+                    user_msgs = [m for m in msgs if m.get("role") in ("user", "human")]
+                    if user_msgs:
+                        txt = user_msgs[0].get("content", "").strip()
+                else:
+                    convs = r.get("conversations", [])
+                    human = [c for c in convs if c.get("from") == "human"]
+                    if human:
+                        txt = human[0].get("value", "").strip()
+
+                if len(txt) < 10:
+                    continue
+                samples.append(Sample(f"chat_{i}", "chat", txt))
+
+            if samples:
+                logger.info(f"Loaded chat dataset from {src['name']} ({len(samples)} samples)")
+                return samples
+
+            last_exc = RuntimeError(f"No usable prompts extracted from {src['name']}")
         except Exception as exc:
             last_exc = exc
-    if ds is None:
-        raise RuntimeError(f"ShareGPT dataset/config unavailable: {last_exc}")
-    samples: list[Sample] = []
-    for i, r in enumerate(ds):
-        if len(samples) >= max_n:
-            break
-        convs = r.get("conversations", [])
-        human = [c for c in convs if c.get("from") == "human"]
-        if not human:
-            continue
-        txt = human[0].get("value", "").strip()
-        if len(txt) < 10:
-            continue
-        samples.append(Sample(f"sgpt_{i}", "chat", txt))
-    return samples
+
+    raise RuntimeError(f"No chat dataset available from configured sources: {last_exc}")
 
 
 def _safe_load(loader_name: str, fn, max_n: int) -> list[Sample]:
