@@ -241,10 +241,10 @@ def _load_model(model_id: str, is_target: bool):
             trust_remote_code=True,
         )
     else:
-        logger.info(f"Loading {model_id} fp16 on cuda:0")
+        logger.info(f"Loading {model_id} fp16 on cuda:1")
         return AutoModelForCausalLM.from_pretrained(
             model_id,
-            device_map={"": 0},
+            device_map={"": 1},
             trust_remote_code=True,
             torch_dtype=torch.float16,
         )
@@ -487,7 +487,10 @@ def build_draft_tree(
     max_depth=6, top_k=10, max_branch=5, max_nodes=64, temperature=0.0,
 ) -> DraftTree:
     tree = DraftTree()
-    device = input_ids.device
+    device = next(draft_m.parameters()).device
+
+    input_ids = input_ids.to(device)
+    attn_mask = attn_mask.to(device)
 
     out = draft_m(input_ids=input_ids, attention_mask=attn_mask, use_cache=False)
     logits = out.logits[:, -1, :]
@@ -569,7 +572,10 @@ def build_draft_tree(
 
 @torch.no_grad()
 def verify_and_score_tree(target_m, input_ids, attn_mask, tree: DraftTree) -> tuple[DraftTree, list[float]]:
-    device = input_ids.device
+    device = next(target_m.parameters()).device
+    input_ids = input_ids.to(device)
+    attn_mask = attn_mask.to(device)
+
     n = tree.size
     tree.target_probs    = [0.0] * n
     tree.target_logprobs = [0.0] * n
@@ -711,13 +717,13 @@ def measure_sample(
             records.append(row)
 
         # We already computed the greedy next token during batched verification
-        nt = greedy_next_token
+        nt = greedy_next_token.to(cur_ids.device)
         if nt.item() == target_tokenizer.eos_token_id:
             break
 
         cur_ids  = torch.cat([cur_ids, nt], dim=1)
         cur_mask = torch.cat(
-            [cur_mask, torch.ones(1, 1, dtype=torch.long, device=device)], dim=1
+            [cur_mask, torch.ones(1, 1, dtype=torch.long, device=cur_ids.device)], dim=1
         )
         gen += 1
         if cur_ids.shape[1] > 2048 + max_new_tokens:
