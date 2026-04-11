@@ -293,15 +293,31 @@ def load_sharegpt(max_n: int) -> list[Sample]:
     return samples
 
 
+def _safe_load(loader_name: str, fn, max_n: int) -> list[Sample]:
+    try:
+        rows = fn(max_n)
+        logger.info(f"Loaded {loader_name}: {len(rows)} samples")
+        return rows
+    except Exception as exc:
+        logger.warning(f"Skipping dataset {loader_name} due to load error: {exc}")
+        return []
+
+
 all_samples = (
-    load_humaneval(CFG["max_samples"]["humaneval"])
-    + load_math(CFG["max_samples"]["math"])
-    + load_gsm8k(CFG["max_samples"]["gsm8k"])
-    + load_sharegpt(CFG["max_samples"]["sharegpt"])
+    _safe_load("openai_humaneval", load_humaneval, CFG["max_samples"]["humaneval"])
+    + _safe_load("hendrycks/competition_math", load_math, CFG["max_samples"]["math"])
+    + _safe_load("openai/gsm8k", load_gsm8k, CFG["max_samples"]["gsm8k"])
+    + _safe_load("ShareGPT", load_sharegpt, CFG["max_samples"]["sharegpt"])
 )
 logger.info(f"Total samples: {len(all_samples)}")
 for t in ["code", "math", "reasoning", "chat"]:
     logger.info(f"  {t}: {sum(1 for s in all_samples if s.task_type == t)}")
+
+if not all_samples:
+    raise RuntimeError(
+        "No datasets could be loaded in this environment. "
+        "Check network/mirror access or reduce enabled datasets."
+    )
 
 # ── 7. Draft tree & verification ──────────────────────────────────────
 @dataclass

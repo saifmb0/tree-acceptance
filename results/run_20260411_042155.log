@@ -1,6 +1,0 @@
-2026-04-11 04:21:55.473 | INFO     | __main__:<module>:86 - Config saved → results/config_20260411_042155.json
-2026-04-11 04:21:55.673 | INFO     | __main__:<module>:95 - Device: cuda
-2026-04-11 04:21:55.713 | INFO     | __main__:<module>:102 -   GPU 0: Tesla T4, 15.6 GB
-2026-04-11 04:21:55.713 | INFO     | __main__:<module>:102 -   GPU 1: Tesla T4, 15.6 GB
-2026-04-11 04:21:55.714 | INFO     | __main__:<module>:193 - Loading target: TheBloke/Llama-2-7B-Chat-GPTQ
-2026-04-11 04:21:56.577 | WARNING  | __main__:_ensure_gptq_backend_ready:148 - No GPTQ QuantizeConfig provider found. Attempting to install `gptqmodel`...

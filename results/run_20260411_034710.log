@@ -1,5 +1,0 @@
-2026-04-11 03:47:10.290 | INFO     | __main__:<module>:86 - Config saved → results/config_20260411_034710.json
-2026-04-11 03:47:10.543 | INFO     | __main__:<module>:95 - Device: cuda
-2026-04-11 03:47:10.585 | INFO     | __main__:<module>:102 -   GPU 0: Tesla T4, 15.6 GB
-2026-04-11 03:47:10.585 | INFO     | __main__:<module>:102 -   GPU 1: Tesla T4, 15.6 GB
-2026-04-11 03:47:10.586 | INFO     | __main__:<module>:109 - Loading target: TheBloke/Llama-2-7B-Chat-GPTQ

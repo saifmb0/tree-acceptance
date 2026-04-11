@@ -1,7 +1,0 @@
-2026-04-11 03:51:04.074 | INFO     | __main__:<module>:86 - Config saved → results/config_20260411_035104.json
-2026-04-11 03:51:04.275 | INFO     | __main__:<module>:95 - Device: cuda
-2026-04-11 03:51:04.315 | INFO     | __main__:<module>:102 -   GPU 0: Tesla T4, 15.6 GB
-2026-04-11 03:51:04.315 | INFO     | __main__:<module>:102 -   GPU 1: Tesla T4, 15.6 GB
-2026-04-11 03:51:04.316 | WARNING  | __main__:<module>:115 - auto-gptq not available — falling back to bitsandbytes 4-bit NF4.
-2026-04-11 03:51:04.316 | INFO     | __main__:<module>:155 - Loading target: TheBloke/Llama-2-7B-Chat-GPTQ
-2026-04-11 03:51:04.993 | INFO     | __main__:_load_model:138 - Loading TheBloke/Llama-2-7B-Chat-GPTQ via bitsandbytes NF4
