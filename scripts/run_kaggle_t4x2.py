@@ -667,14 +667,11 @@ def measure_sample(
     csv_writer: csv.DictWriter,
     max_new_tokens: int = 256,
 ) -> list[dict]:
-    """Run one sample through the draft-then-verify loop.
-
-    Records are yielded line-by-line into *csv_writer* as they arrive.
-    Returns the list of dicts for in-memory aggregation.
-    """
+    """Run one sample through the draft-then-verify loop."""
+    device = next(target_model.parameters()).device
     enc = target_tokenizer(
         sample.prompt, return_tensors="pt", truncation=True, max_length=2048
-    ).to(DEVICE)
+    ).to(device)
     cur_ids  = enc["input_ids"]
     cur_mask = enc["attention_mask"]
     records: list[dict] = []
@@ -720,7 +717,7 @@ def measure_sample(
 
         cur_ids  = torch.cat([cur_ids, nt], dim=1)
         cur_mask = torch.cat(
-            [cur_mask, torch.ones(1, 1, dtype=torch.long, device=DEVICE)], dim=1
+            [cur_mask, torch.ones(1, 1, dtype=torch.long, device=device)], dim=1
         )
         gen += 1
         if cur_ids.shape[1] > 2048 + max_new_tokens:
