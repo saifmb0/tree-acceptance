@@ -3,6 +3,7 @@
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{hyperref}
+\usepackage{orcidlink}
 \usepackage{xcolor}
 \usepackage{multirow}
 \usepackage{microtype}
@@ -15,10 +16,9 @@
 An Empirical Study Across Cognitive Domains}
 
 \author{
-  \IEEEauthorblockN{Saif M.B.}
-  \IEEEauthorblockA{Department of Computer Science \\
-  Aalborg University \\
-  Aalborg, Denmark \\
+  \IEEEauthorblockN{Saif Mahmoud \orcidlink{0009-0004-8879-9335}}
+  \IEEEauthorblockA{Al Ain University \\
+  Abu Dhabi, United Arab Emirates \\
   contact@saifmb.com}
 }
 
@@ -135,6 +135,17 @@ HumanEval~\cite{chen2021evaluating} evaluate generation \emph{quality} but
 not the inference-efficiency characteristics of speculative methods across
 task types. Our work is orthogonal, focusing on acceptance physics rather
 than output correctness.
+\\
+
+To our knowledge, no prior work systematically characterizes acceptance dynamics
+across cognitively distinct task domains. Domain-adaptive speculative decoding
+has been studied in the context of technical specialization — e.g., function
+calling, biology, and domain-specific language models — where the draft model
+is fine-tuned to match a specialized target \cite{hu2025training}. These works focus on closing
+the distribution gap through training rather than characterizing how cognitive
+task type affects acceptance under a fixed, general-purpose draft model. Our
+work is orthogonal: we hold the draft-target pair constant and vary the task
+domain, isolating task type as an independent variable in acceptance dynamics.
 
 % ── §3 Methodology ───────────────────────────────────────────────────
 \section{Methodology}
@@ -144,12 +155,14 @@ We select a draft--target pair that represents a practical deployment
 scenario: a quantized 7B-parameter target and a 1.1B-parameter draft from a
 compatible model family.
 
-\textbf{Target model:} \texttt{TheBloke/Llama-2-7B-Chat-GPTQ}~\cite{touvron2023llama},
+\textbf{Target model:}
+\texttt{TheBloke/Llama-2-7B-Chat-GPTQ}~\cite{touvron2023llama},
 a 4-bit GPTQ-quantized variant of Llama-2-7B-Chat. GPTQ quantization reduces
 VRAM footprint with negligible perplexity degradation, enabling fitting on a
 single 16\,GB GPU.
 
-\textbf{Draft model:} \texttt{TinyLlama/TinyLlama-1.1B-Chat-v1.0}~\cite{zhang2024tinyllama},
+\textbf{Draft model:}
+\texttt{TinyLlama/TinyLlama-1.1B-Chat-v1.0}~\cite{zhang2024tinyllama},
 a 1.1B-parameter model trained on 3T tokens with the Llama-2 architecture and
 subsequently instruction-tuned on chat data. The shared vocabulary and
 architectural lineage make it a natural draft candidate for Llama-2 targets.
@@ -236,6 +249,15 @@ Tesla T4 GPUs (15.6\,GB VRAM each). The target model is pinned to
 \texttt{gptqmodel} 6.0.3 and \texttt{transformers} 5.5.3 under PyTorch
 2.11.0+cu130. The GPTQ kernel selected at runtime is \texttt{TritonV2QuantLinear}.
 All results are reproducible with a fixed seed of 42.
+
+At load time, the target model occupies 4.85\,GB of VRAM on \texttt{cuda:0},
+and the draft model occupies 2.20\,GB on \texttt{cuda:1}, leaving substantial
+headroom for batched activation buffers during tree scoring.
+Pinning the two models to separate physical GPUs eliminates cross-device
+attention tensor transfers during the tree-construction inner loop, which
+would otherwise serialize under slow NVLink-absent PCI-e bus bandwidth.
+The total experiment runtime across 200 prompts at the reported
+hyperparameters was approximately 3.5 hours.
 
 % ── §5 Results ───────────────────────────────────────────────────────
 \section{Results}
@@ -361,6 +383,45 @@ and target model agree on that completion more readily. The depth-1 node
 represents the \emph{semantic pivot}, while depth-2 and depth-3 nodes are
 increasingly syntactic complements.
 
+\subsection{Position-Within-Generation Effects}
+
+Beyond tree depth and task type, we examine whether the position of a
+generation step within the output sequence affects acceptance. We partition
+token positions into two equal bins: early positions (bin~0, tokens 1--32)
+and late positions (bin~1, tokens 33--64), and report $\bar\alpha$ per
+(depth, bin) cell in Table~\ref{tab:pos}.
+
+\begin{table}[h]
+\centering
+\caption{Mean acceptance rate by tree depth and position bin (0 = early
+tokens, 1 = late tokens), aggregated across all domains.}
+\label{tab:pos}
+\begin{tabular}{lccc}
+\toprule
+Depth & Early (bin 0) & Late (bin 1) & $\Delta$ \\
+\midrule
+1 & 0.520 & 0.548 & $+0.028$ \\
+2 & 0.537 & 0.534 & $-0.003$ \\
+3 & 0.541 & 0.556 & $+0.015$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+At depths 1 and 3, acceptance is consistently higher for tokens generated
+later in the sequence. This effect is most pronounced at depth~1
+($+0.028$), where the output has already established a topic, style, and
+syntactic register. Once the model has committed to a generation direction
+at earlier positions, the marginal next-token prediction task at depth~1
+becomes easier for both models, increasing the probability that the
+draft's choice coincides with the target's preference.
+
+The depth-2 row is a near-zero exception ($-0.003$), consistent with
+the interpretation that depth-2 nodes are mid-chain syntactic complements
+whose predictability is largely determined by their parent node rather
+than by macro sequence position. The position effect is therefore primarily
+a property of free-choice token slots (depth~1) rather than constrained
+completion slots (depth~2).
+
 \subsection{Entropy--Acceptance Correlation}
 
 To test whether target model uncertainty predicts draft rejection, we compute
@@ -436,6 +497,18 @@ fine-tuned on MATH or DeepMind's MathMix data) is a direct and
 actionable recommendation. The shared-vocabulary constraint between draft and
 target remains important; a model fine-tuned on math with the same Llama-2
 tokenizer would likely close the $E[L]$ gap substantially.
+
+\textbf{Request routing.} Our results suggest a complementary strategy
+that requires no re-training: classifying incoming requests by task type
+before deciding whether to activate speculative decoding at all. A
+lightweight prompt classifier (even a rule-based heuristic) can segregate
+chat and conversational requests---for which $E[L] > 1$ is confirmed---from
+mathematical or code requests, where the current draft provides no net
+speedup. Disabling speculation for the low-$E[L]$ tail eliminates the
+cost of draft tree construction on requests where it actively hurts latency,
+without modifying the models themselves. This approach is trivially
+composable with existing inference-serving infrastructure and represents
+an immediately deployable recommendation from our findings.
 
 \textbf{Limitations.} The experiments are conducted with greedy sampling
 (temperature 0), which represents a maximum acceptance condition for the
