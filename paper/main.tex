@@ -114,9 +114,9 @@ across cognitively distinct task domains. Domain-adaptive speculative decoding h
 
 \subsection{Models}
 We select a draft--target pair representing a practical deployment scenario.
-\textbf{Target:} \texttt{TheBloke/Llama-2-7B-Chat-GPTQ}~\cite{touvron2023llama},
+\textbf{Target:} \texttt{TheBloke/\allowbreak Llama-2-7B-\allowbreak Chat-GPTQ}~\cite{touvron2023llama},
 a 4-bit GPTQ-quantized variant of Llama-2-7B-Chat, fitting on a 16\,GB GPU.
-\textbf{Draft:} \texttt{TinyLlama/TinyLlama-1.1B-Chat-v1.0}~\cite{zhang2024tinyllama},
+\textbf{Draft:} \texttt{TinyLlama/\allowbreak TinyLlama-1.1B-\allowbreak Chat-v1.0}~\cite{zhang2024tinyllama},
 a 1.1B-parameter model on the Llama-2 architecture. Its shared vocabulary makes it a natural draft candidate.
 
 \subsection{Tree Construction}
@@ -472,6 +472,9 @@ decoding acceptance dynamics across four NLP benchmark domains. Our principal fi
 
 These findings motivate domain-adaptive speculation strategies. They also motivate domain-specific draft model selection as first-class design decisions for speculative inference pipelines.
 
+All code and experiments are available at \url{https://github.com/saifmb0/tree-acceptance} 
+
+The author thanks Dr. Armagan Elibol for valuable feedback on the manuscript
 % ── References ───────────────────────────────────────────────────────
 \bibliographystyle{unsrtnat}
 
